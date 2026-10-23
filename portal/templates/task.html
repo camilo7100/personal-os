@@ -1,0 +1,46 @@
+{% extends "base.html" %}{% import "macros.html" as m %}
+{% block title %}{{ t.title }} · PERSONAL_OS{% endblock %}
+{% block content %}
+<p class="sub"><a href="/tasks">← Tareas</a>{% if t.project %} · {{ t.project }}{% endif %} · #{{ t.id }}</p>
+<h1>{{ t.title }}</h1>
+<p class="sub">{% if t.status == 'done' %}<span class="chip ok">hecha</span>{% elif t.status == 'dropped' %}<span class="chip muted">descartada</span>{% endif %}
+  {% if t.due_date %}vence {{ t.due_date }}{% endif %}{% if t.scheduled_date %} · trabajo el {{ t.scheduled_date }}{% if t.start_time %} a las {{ t.start_time }}{% endif %}{% endif %}
+  {% if t.est_minutes %} · ⏱ {{ t.est_minutes }} min estimados{% endif %}{% if t.actual_minutes %} · {{ t.actual_minutes }} min reales{% endif %}</p>
+<div class="detail">
+  <div class="grid">
+    <form class="card" method="post" action="/tasks/{{ t.id }}/edit">
+      <h2>Detalles</h2>
+      <div class="fgrid">
+        <div class="full"><label>Título</label><input name="title" value="{{ t.title }}" required></div>
+        <div><label>Proyecto</label><select name="project"><option value="">Sin proyecto</option>{% for p in projects %}<option {{ 'selected' if p.name == t.project }}>{{ p.name }}</option>{% endfor %}</select></div>
+        <div><label>Prioridad</label><select name="priority">{% for v, l in ((1, 'Urgente'), (2, 'Alta'), (3, 'Normal'), (4, 'Baja')) %}<option value="{{ v }}" {{ 'selected' if t.priority == v }}>{{ l }}</option>{% endfor %}</select></div>
+        <div><label>Fecha límite</label><input type="date" name="due_date" value="{{ t.due_date or '' }}"></div>
+        <div><label>Cuándo la trabajo (día)</label><input type="date" name="scheduled_date" value="{{ t.scheduled_date or '' }}"></div>
+        <div><label>Hora de inicio</label><input type="time" name="start_time" value="{{ t.start_time or '' }}"></div>
+        <div><label>Duración (minutos)</label><input type="number" min="5" step="5" name="est_minutes" value="{{ t.est_minutes or '' }}"></div>
+        <div><label>Se repite</label><select name="recurrence">{% for v, l in (('', 'No'), ('daily', 'Cada día'), ('weekly', 'Cada semana'), ('biweekly', 'Cada 2 semanas'), ('monthly', 'Cada mes'), ('quarterly', 'Cada 3 meses'), ('yearly', 'Cada año')) %}<option value="{{ v }}" {{ 'selected' if (t.recurrence or '') == v }}>{{ l }}</option>{% endfor %}</select></div>
+        <div><label>Estado</label><select name="status">{% for v, l in (('todo', 'Por hacer'), ('doing', 'En curso'), ('blocked', 'Bloqueada')) %}<option value="{{ v }}" {{ 'selected' if t.status == v }}>{{ l }}</option>{% endfor %}</select></div>
+        <div><label>Etiquetas</label><input name="tags" value="{{ t.tags or '' }}" placeholder="pago, casa"></div>
+        <div><label>Ámbito</label><select name="entity"><option value="personal" {{ 'selected' if t.entity == 'personal' }}>Personal</option><option value="business" {{ 'selected' if t.entity == 'business' }}>Negocio</option></select></div>
+        <div class="full"><label>Notas</label><textarea name="notes" rows="4">{{ t.notes or '' }}</textarea></div>
+        <div class="full"><label><input type="checkbox" name="someday" value="1" style="width:auto" {{ 'checked' if t.someday }}> Algún día (guardada sin fecha, no sale en Hoy)</label></div>
+      </div>
+      <div class="form" style="margin-top:12px"><button>Guardar cambios</button>
+        <button class="ghost" formaction="/tasks/{{ t.id }}/unschedule">Quitar del calendario</button></div>
+    </form>
+    <div class="card"><h2>Subtareas {% if subs %}<span class="pill">{{ subs|selectattr('status', 'equalto', 'done')|list|length }}/{{ subs|length }}</span>{% endif %}</h2>
+      {% for s in subs %}<div class="row"><form class="inline" method="post" action="/tasks/{{ s.id }}/done"><input type="hidden" name="back" value="/tasks/{{ t.id }}"><button class="check {{ 'on' if s.status == 'done' }}">✓</button></form>
+        <div class="grow" style="{{ 'text-decoration:line-through;opacity:.6' if s.status == 'done' }}">{{ s.title }}</div></div>{% else %}<div class="empty">Divide lo grande en pasos pequeños.</div>{% endfor %}
+      <form class="form" method="post" action="/tasks/{{ t.id }}/subtask" style="margin-top:10px"><input name="title" placeholder="Nuevo paso…" required><button class="ghost">Añadir</button></form></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>Acciones</h2>
+      <div class="form"><form class="inline" method="post" action="/tasks/{{ t.id }}/done"><input type="hidden" name="back" value="/tasks/{{ t.id }}"><button>✓ Hecha</button></form>
+        <form class="inline" method="post" action="/tasks/{{ t.id }}/move"><input type="hidden" name="back" value="/tasks/{{ t.id }}"><input type="hidden" name="to" value="{{ tomorrow }}"><button class="ghost">⏰ Mañana</button></form>
+        <form class="inline" method="post" action="/tasks/{{ t.id }}/drop"><input type="hidden" name="back" value="/tasks"><button class="ghost">✕ Descartar</button></form></div></div>
+    <div class="card"><h2>Enfoque (Pomodoro)</h2>
+      <div class="timer" data-timer="{{ t.id }}"><span class="time">00:00</span><button class="start">Empezar</button> <button class="ghost stop">Terminar y guardar</button></div>
+      <p class="meta" style="text-align:center">25 minutos de concentración, 5 de descanso. El tiempo se suma a la tarea.</p></div>
+  </div>
+</div>
+{% endblock %}

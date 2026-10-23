@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% import "macros.html" as m %}
+{% block title %}Proponer mi día · PERSONAL_OS{% endblock %}
+{% block content %}
+<p class="sub"><a href="/calendar?view=day&d={{ day }}">← Calendario</a></p>
+<h1>Plan de {{ label }}</h1>
+<p class="sub">El sistema propone un bloque de tiempo para cada tarea, esquivando tus eventos de Google Calendar, el almuerzo y lo ya agendado, de lo más importante a lo menos, sin pasarte de tu capacidad.</p>
+<div class="card" style="margin-bottom:16px"><h2>Carga del día</h2>{{ m.meter(load) }}
+  <p style="margin:10px 0 4px"><b>{{ load.advice }}</b></p>
+  <div class="meta">Grandes {{ load.sizes['grande'] }} · medianas {{ load.sizes['mediana'] }} · pequeñas {{ load.sizes['pequeña'] }} — regla 1-3-5: 1 grande, 3 medianas y 5 pequeñas como máximo.</div></div>
+{% if load.mit %}<div class="card" style="margin-bottom:16px"><h2>Lo más importante (máx. 3)</h2>
+  {% for t in load.mit %}<div class="row"><span class="pill">{{ loop.index }}</span><div class="grow"><a href="/tasks/{{ t.id }}" style="color:inherit">{{ t.title }}</a></div></div>{% endfor %}</div>{% endif %}
+<form class="card" method="post" action="/plan/day/apply">
+  <input type="hidden" name="day" value="{{ day }}">
+  <h2>Bloques propuestos</h2>
+  {% for p in plan %}<div class="row"><input type="checkbox" name="pick" value="{{ p.id }}|{{ p.start }}|{{ p.minutes }}" checked style="width:auto">
+    <b style="width:92px;font-variant-numeric:tabular-nums">{{ p.start }}–{{ p.end }}</b><div class="grow">{{ p.title }}</div><span class="chip muted">{{ p.size }} · {{ p.minutes }} min</span></div>
+  {% else %}<div class="empty">No hay tareas sin hora para este día (o ya está todo agendado).</div>{% endfor %}
+  {% if plan %}<div class="form" style="margin-top:12px"><button>Programar los marcados</button><span class="meta">Se guardan como bloques de tiempo y salen en el calendario (y en Google Calendar en la próxima sincronización).</span></div>{% endif %}
+</form>
+{% if left_out %}<div class="card" style="margin-top:16px"><h2>No caben hoy ({{ left_out|length }})</h2><p class="meta" style="margin:0 0 6px">Superan tu capacidad o la regla 1-3-5. Muévelas a otro día:</p>
+  {% for t in left_out %}<div class="row"><div class="grow">{{ t.title }}<div class="meta">{{ t.minutes }} min</div></div>
+    <form class="inline" method="post" action="/tasks/{{ t.id }}/move"><input type="hidden" name="back" value="/plan/day?d={{ day }}"><input type="hidden" name="to" value="{{ tomorrow }}"><button class="ghost small">⏰ Mañana</button></form></div>{% endfor %}</div>{% endif %}
+{% if moves %}<div class="card" style="margin-top:16px"><h2>Equilibrar la semana</h2><p class="meta" style="margin:0 0 6px">Estos días están sobrecargados. Sugerencia de qué mover a un día más libre (antes del vencimiento):</p>
+  {% for mv in moves %}<div class="row"><div class="grow">{{ mv.title }}<div class="meta">{{ mv['from'] }} → {{ mv.to }}</div></div>
+    <form class="inline" method="post" action="/tasks/{{ mv.id }}/move"><input type="hidden" name="back" value="/plan/day?d={{ day }}"><input type="hidden" name="to" value="{{ mv.to }}"><button class="ghost small">Mover</button></form></div>{% endfor %}</div>{% endif %}
+{% endblock %}

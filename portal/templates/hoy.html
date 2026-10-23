@@ -1,0 +1,75 @@
+{% extends "base.html" %}{% import "macros.html" as m %}
+{% block title %}Hoy · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Hoy</h1>
+<p class="sub">{{ nice }} · {{ g.overdue|length }} vencidas · {{ g.today|length }} para hoy · {{ done_today }} hechas</p>
+
+{% if start_pending %}<div class="note"><b>Faltan {{ start_pending }} pasos para dejar todo listo.</b> <a href="/start">Ver Primeros pasos</a></div>{% endif %}
+{% if g.alerts %}<div class="card" style="margin-bottom:16px"><h2>Alertas</h2>
+  {% for a in g.alerts[:6] %}<div class="row"><span class="chip {{ 'bad' if a.level == 'CRITICAL' else 'warn' if a.level == 'IMPORTANT' else 'muted' }}">{{ {'CRITICAL':'crítica','IMPORTANT':'importante','INFO':'aviso'}[a.level] }}</span>
+    <div class="grow">{% if a.link %}<a href="{{ a.link }}">{{ a.title }}</a>{% else %}{{ a.title }}{% endif %}{% if a.detail %}<div class="meta">{{ a.detail }}</div>{% endif %}</div>
+    <form class="inline" method="post" action="/alerts/{{ a.id }}/ack"><input type="hidden" name="back" value="/"><button class="ghost small" title="Archivar">✓</button></form></div>{% endfor %}
+  {% if g.alerts|length > 6 %}<div class="meta" style="margin-top:6px">y {{ g.alerts|length - 6 }} más en <a href="/system">Sistema</a></div>{% endif %}</div>{% endif %}
+<div class="card" style="margin-bottom:16px">{{ m.quick_add('/', true) }}
+  <div class="meta" style="margin-top:8px">¿Una idea sin clasificar? Mándala a <a href="/inbox">tu Inbox</a> (o <code>Ctrl+Alt+N</code>).</div></div>
+
+<div class="grid g2" style="margin-bottom:16px">
+  <div class="card"><h2>Carga de hoy</h2>{{ m.meter(load) }}
+    <p style="margin:10px 0 4px"><b>{{ load.advice }}</b></p>
+    <div class="meta">Grandes {{ load.sizes['grande'] }} · medianas {{ load.sizes['mediana'] }} · pequeñas {{ load.sizes['pequeña'] }} (máximo recomendado 1-3-5)</div>
+    <div class="form" style="margin-top:10px"><a class="btn" href="/plan/day">✨ Proponer mi día</a><a class="btn ghost" href="/calendar?view=day">Ver el día</a></div></div>
+  <div class="card"><h2>Lo más importante hoy</h2>
+    {% for t in load.mit %}<div class="row"><span class="pill">{{ loop.index }}</span><div class="grow"><a href="/tasks/{{ t.id }}" style="color:inherit">{{ t.title }}</a>{% if t.start_time %}<div class="meta">🕘 {{ t.start_time }}</div>{% endif %}</div>
+      <form class="inline" method="post" action="/tasks/{{ t.id }}/done"><input type="hidden" name="back" value="/"><button class="check" title="Hecha">✓</button></form></div>
+    {% else %}<div class="empty">Elige hasta 3 cosas importantes: crea una arriba o mira «Cualquier momento».</div>{% endfor %}
+    <div class="meta" style="margin-top:6px">Terminadas en 14 días:</div>
+    <div class="spark">{% for s in spark %}<i title="{{ s.day }}: {{ s.n }}" style="height:{{ [4, (100 * s.n / spark_top)|round]|max }}%"></i>{% endfor %}</div></div>
+</div>
+{% if blocks %}<div class="card" style="margin-bottom:16px"><h2>Tu día en bloques</h2>
+  {% for b in blocks %}<div class="agenda-item"><span class="t">{{ b.time }}</span>{{ m.ev(b) }}{% if b.end_time %}<span class="tag">hasta {{ b.end_time }}</span>{% endif %}</div>{% endfor %}</div>{% endif %}
+
+<div class="grid g4" style="margin-bottom:16px">
+  {{ m.stat(g.overdue|length, 'Vencidas', 'bad' if g.overdue|length else 'ok') }}
+  {{ m.stat(g.inbox_new, 'En el inbox', 'warn' if g.inbox_new else '') }}
+  {{ m.stat(g.emails_for_claude, 'Correos que importan', '') }}
+  {{ m.stat(g.health_warnings|length + g.jobs_failed_24h|length, 'Avisos del sistema', 'warn' if g.health_warnings|length + g.jobs_failed_24h|length else 'ok') }}
+</div>
+
+<div class="grid g2">
+  <div class="grid">
+    <div class="card"><h2>Vencidas</h2>
+      {% for t in g.overdue %}{{ m.task_row(t, today, '/') }}{% else %}<div class="empty">Nada vencido 🎉</div>{% endfor %}</div>
+    <div class="card"><h2>Para hoy</h2>
+      {% for t in g.today %}{{ m.task_row(t, today, '/') }}{% else %}<div class="empty">Sin tareas para hoy.</div>{% endfor %}
+      </div>
+    {% if g.plan_today %}<div class="card"><h2>Planes de trabajo</h2>
+      {% for i in g.plan_today[:8] %}<div class="row">
+        <form class="inline" method="post" action="/plans/items/{{ i.id }}/toggle"><input type="hidden" name="back" value="/"><button class="check" title="Hecho">✓</button></form>
+        <div class="grow">{{ i.title }}<div class="meta"><a href="/plans/{{ i.plan_id }}">{{ i.plan }}</a> · {{ i.est_minutes }} min</div></div>
+        <span class="chip {{ 'bad' if i.scheduled_date < today else 'muted' }}">{{ 'atrasado' if i.scheduled_date < today else 'hoy' }}</span></div>{% endfor %}
+      {% if g.plan_today|length > 8 %}<div class="meta" style="margin-top:6px">y {{ g.plan_today|length - 8 }} más en <a href="/plans">Planes</a></div>{% endif %}</div>{% endif %}
+    <div class="card"><h2>Próximos 7 días</h2>
+      {% for t in g.next7 %}<div class="row"><div class="grow">{{ t.title }}</div><span class="chip muted">{{ t.due_date }}</span></div>{% else %}<div class="empty">Despejado.</div>{% endfor %}</div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>Hábitos</h2>
+      {% for h in g.habits %}
+      <div class="row"><form class="inline" method="post" action="/habits/{{ h.id }}/toggle"><button class="check {{ 'on' if h.done_today }}">✓</button></form>
+        <div class="grow">{{ h.name }}</div><span class="chip {{ 'ok' if h.streak >= 3 else 'muted' }}">racha {{ h.streak }}</span></div>
+      {% else %}<div class="empty">Sin hábitos aún. <a href="/life">Crea el primero</a>.</div>{% endfor %}</div>
+    <div class="card"><h2>Vencimientos y fechas (14 días)</h2>
+      {% set u = g.upcoming %}
+      {% for x in u.documents %}<div class="row"><div class="grow">📄 {{ x.name }}</div><span class="chip warn">{{ x.expires_on }}</span></div>{% endfor %}
+      {% for x in u.subscriptions %}<div class="row"><div class="grow">🔁 {{ x.name }} · {{ '{:,.0f}'.format(x.amount) }}</div><span class="chip muted">{{ x.next_date }}</span></div>{% endfor %}
+      {% for x in u.birthdays %}<div class="row"><div class="grow">🎂 {{ x.name }}</div><span class="chip">{{ x.date }}</span></div>{% endfor %}
+      {% if not (u.documents or u.subscriptions or u.birthdays) %}<div class="empty">Nada próximo.</div>{% endif %}</div>
+    {% if g.applications %}<div class="card"><h2>Empleo</h2>
+      {% for a in g.applications %}<div class="row"><div class="grow">{{ a.company }} — {{ a.role }}<div class="meta">{{ a.next_step or a.status }}</div></div><span class="chip">{{ a.next_step_date }}</span></div>{% endfor %}</div>{% endif %}
+    <div class="card"><h2>Sistema</h2>
+      {% for h in g.health_warnings %}<div class="row"><span class="chip warn">aviso</span><div class="grow">{{ h.metric }} <span class="meta">{{ h.detail or h.value }}</span></div></div>{% endfor %}
+      {% for j in g.jobs_failed_24h %}<div class="row"><span class="chip bad">falló</span><div class="grow">{{ j.job }} <span class="meta">{{ j.message }}</span></div></div>{% endfor %}
+      {% for r in g.repos_dirty %}<div class="row"><span class="chip muted">repo</span><div class="grow">{{ r.name }} <span class="meta">{{ r.dirty }} cambios sin guardar</span></div></div>{% endfor %}
+      {% if not (g.health_warnings or g.jobs_failed_24h or g.repos_dirty) %}<div class="empty">Todo en orden ✅</div>{% endif %}</div>
+  </div>
+</div>
+{% endblock %}

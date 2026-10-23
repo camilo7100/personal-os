@@ -1,0 +1,2 @@
+# Opcionales: transcripción de notas de voz (carpeta de multimedia)
+faster-whisper==1.2.1

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Inbox · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Inbox</h1>
+<p class="sub">Captura primero, clasifica después. {{ items|length }} pendientes.</p>
+<div class="card" style="margin-bottom:16px">
+  <form class="form" method="post" action="/inbox/add"><input name="text" placeholder="Idea, pendiente, enlace…" autofocus required autocomplete="off"><button>Capturar</button></form>
+</div>
+{% for it in items %}
+<div class="card" style="margin-bottom:12px">
+  <div style="font-size:16px;margin-bottom:4px">{{ it.text }}</div>
+  <div class="meta" style="color:var(--muted);font-size:12.5px;margin-bottom:10px">{{ it.source }} · {{ it.captured_at }}</div>
+  {% if it.s and not it.s.error %}
+  <div class="note">✨ Sugerencia: <b>{{ {'task': 'tarea', 'note': 'nota', 'discard': 'descartar'}[it.s.kind] }}</b> — “{{ it.s.title }}”
+    {% if it.s.project %}· {{ it.s.project }}{% endif %}{% if it.s.due %}· {{ it.s.due }}{% endif %}
+    <form class="inline" method="post" action="/inbox/{{ it.id }}/resolve" style="margin-left:8px">
+      <input type="hidden" name="kind" value="{{ it.s.kind }}"><input type="hidden" name="title" value="{{ it.s.title }}">
+      <input type="hidden" name="project" value="{{ it.s.project or '' }}"><input type="hidden" name="due" value="{{ it.s.due or '' }}"><input type="hidden" name="prio" value="{{ it.s.priority }}">
+      <button class="small ok">Aceptar</button></form></div>
+  {% endif %}
+  <form class="form" method="post" action="/inbox/{{ it.id }}/resolve">
+    <input name="title" placeholder="Título (opcional)" value="">
+    <select name="project"><option value="">Sin proyecto</option>{% for p in projects %}<option>{{ p.name }}</option>{% endfor %}</select>
+    <input type="date" name="due">
+    <button name="kind" value="task">→ Tarea</button>
+    <button name="kind" value="note" class="ghost">→ Nota</button>
+    <button name="kind" value="discard" class="ghost">Descartar</button>
+  </form>
+</div>
+{% else %}<div class="card"><div class="empty">Inbox vacío. Todo clasificado ✨</div></div>{% endfor %}
+{% endblock %}

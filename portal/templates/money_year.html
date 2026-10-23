@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Finanzas {{ y.year }} · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Finanzas {{ y.year }}</h1>
+<p class="sub">{{ 'Lo que va del año' if y.year == today[:4]|int else 'Resumen del año' }}: ingresos por trabajo, gastos, ahorro y a dónde se fue la plata. Los traslados entre tus cuentas no cuentan.</p>
+<div class="form" style="margin-bottom:14px">
+  <a class="btn ghost" href="/money{{ '?entity=' ~ entity if entity }}">← Volver al mes</a>
+  <form method="get" action="/money/go" class="form">
+    <select name="period" data-autosubmit title="Elige un mes o un año completo">
+      <optgroup label="Año completo">{% for yy in years %}<option value="{{ yy }}" {{ 'selected' if y.year == yy }}>Año {{ yy }}</option>{% endfor %}</optgroup>
+      <optgroup label="Mes">{% for mo in months %}<option value="{{ mo }}" {{ 'selected' if false }}>{{ mo }}</option>{% endfor %}</optgroup></select>
+    <select name="entity" data-autosubmit><option value="">Personal + negocio</option><option value="personal" {{ 'selected' if entity == 'personal' }}>Personal</option><option value="business" {{ 'selected' if entity == 'business' }}>Negocio</option></select></form>
+</div>
+
+{% if not y.months %}<div class="card"><div class="empty">Aún no hay movimientos de {{ y.year }}. Sube los extractos y aquí aparece el resumen.</div></div>{% else %}
+<div class="grid g4" style="margin-bottom:16px">
+  <div class="card stat ok"><div class="n">{{ fmt(y.income) }}</div><div class="l">Ingresos por trabajo · prom. {{ fmt(y.avg_income) }}/mes</div></div>
+  <div class="card stat bad"><div class="n">{{ fmt(y.expense) }}</div><div class="l">Gastos · prom. {{ fmt(y.avg_expense) }}/mes</div></div>
+  <div class="card stat {{ 'ok' if y.net >= 0 else 'bad' }}"><div class="n">{{ fmt(y.net) }}</div><div class="l">Neto del año</div></div>
+  <div class="card stat {{ '' if y.rate is none else 'ok' if y.rate >= 20 else 'warn' if y.rate >= 10 else 'bad' }}"><div class="n">{{ (y.rate ~ '%') if y.rate is not none else '—' }}</div><div class="l">Tasa de ahorro (meta 20%) · meses completos</div></div>
+</div>
+{% if y.assumed or y.partial %}<div class="note" style="margin-bottom:16px">
+  {% if y.assumed %}{{ y.assumed }} {{ 'mes usa' if y.assumed == 1 else 'meses usan' }} un <b>ingreso supuesto</b> (marcados ≈) porque falta el extracto de Bancolombia; se reemplaza solo al subirlo, y mientras tanto los gastos de Bancolombia de esos meses no están incluidos. {% endif %}
+  {% if y.partial %}{{ y.partial }} {{ 'mes está' if y.partial == 1 else 'meses están' }} incompleto(s) (falta algún extracto): sus totales son parciales.{% endif %}</div>{% endif %}
+
+<div class="grid g2" style="margin-bottom:16px">
+  <div class="card"><h2>Mes a mes</h2>{{ bars | safe }}
+    <div class="legend"><span><i style="background:var(--ok)"></i>Ingresos</span><span><i style="background:var(--bad)"></i>Gastos</span></div></div>
+  <div class="card"><h2>A dónde se fue lo gastado</h2>
+    {% if legend %}<div class="donut-wrap">{{ donut | safe }}
+      <div class="dlegend">{% for l in legend %}<div><span class="sw {{ l.cls }}"></span>{{ l.name }} <b>{{ l.pct }}%</b><small>{{ fmt(l.value) }}</small></div>{% endfor %}</div></div>{% else %}<div class="empty">Sin gastos.</div>{% endif %}</div>
+</div>
+
+{% if y.quarters|length > 1 %}<div class="grid g4" style="margin-bottom:16px">
+  {% for q in y.quarters %}<div class="card"><h2 style="margin-bottom:2px">{{ q.label }} <small class="meta">{{ q.months }}</small></h2>
+    <div class="meta">Ingresos {{ '≈ ' if q.assumed }}<b>{{ fmt(q.income) }}</b></div><div class="meta">Gastos <b>{{ fmt(q.expense) }}</b></div>
+    <div style="font-size:20px;font-weight:750;color:var(--{{ 'ok' if q.net >= 0 else 'bad' }})">{{ fmt(q.net) }}</div>{% if q.partial %}<span class="chip warn">parcial</span>{% endif %}</div>{% endfor %}</div>{% endif %}
+
+<div class="card" style="margin-bottom:16px"><h2>Detalle por mes</h2>
+  <table><tr><th>Mes</th><th style="text-align:right">Ingresos</th><th style="text-align:right">Gastos</th><th style="text-align:right">Neto</th><th></th></tr>
+  {% for m in y.months %}<tr><td><a href="/money?month={{ m.month }}{{ '&entity=' ~ entity if entity }}">{{ m.label }}</a></td>
+    <td style="text-align:right">{{ '≈ ' if m.assumed }}{{ fmt(m.income) }}</td><td style="text-align:right">{{ fmt(m.expense) }}</td>
+    <td style="text-align:right;color:var(--{{ 'ok' if m.net >= 0 else 'bad' }})">{{ fmt(m.net) }}</td>
+    <td>{% if not m.complete %}<span class="chip warn">parcial</span>{% elif m.assumed %}<span class="chip muted">ingreso supuesto</span>{% else %}<span class="chip ok">completo</span>{% endif %}</td></tr>{% endfor %}
+  <tr><td><b>Total</b></td><td style="text-align:right"><b>{{ fmt(y.income) }}</b></td><td style="text-align:right"><b>{{ fmt(y.expense) }}</b></td><td style="text-align:right"><b>{{ fmt(y.net) }}</b></td><td></td></tr></table>
+  {% if y.best and y.months|length > 1 %}<p class="meta" style="margin:8px 0 0">Mejor mes: <b>{{ y.best.label }}</b> ({{ fmt(y.best.net) }}) · el más flojo: <b>{{ y.worst.label }}</b> ({{ fmt(y.worst.net) }}).</p>{% endif %}</div>
+
+<div class="grid g2">
+  <div class="card"><h2>Gasto por categoría</h2>
+    {% for c in y.categories %}<div class="row"><div class="grow">{{ c.name }}<div class="meta">≈ {{ fmt(c.per_month) }} al mes · {{ c.pct }}% del gasto</div></div><b>{{ fmt(c.value) }}</b></div>{% else %}<div class="empty">Sin gastos.</div>{% endfor %}</div>
+  <div>
+    {% if y.networth_end is not none %}<div class="card" style="margin-bottom:16px"><h2>Patrimonio</h2>
+      <div style="font-size:26px;font-weight:750">{{ fmt(y.networth_end) }}</div>
+      {% if y.networth_start is not none %}{% set d = y.networth_end - y.networth_start %}<div class="meta">{{ 'Subió' if d >= 0 else 'Bajó' }} {{ fmt(d|abs) }} desde {{ 'el 1 de enero' if y.networth_start is not none else 'el primer saldo' }} ({{ fmt(y.networth_start) }}).</div>{% endif %}
+      <p class="meta" style="margin:6px 0 0">Incluye lo que rindió la Fiducuenta y los traslados entre tus cuentas no lo cambian.</p></div>{% endif %}
+    {% if y.other_in %}<div class="card"><h2>Otras entradas del año (no son ingreso)</h2>
+      {% for o in y.other_in %}<div class="row"><div class="grow">{{ o.category }}</div><b>{{ fmt(o.total) }}</b></div>{% endfor %}</div>{% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

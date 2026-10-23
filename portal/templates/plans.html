@@ -1,0 +1,37 @@
+{% extends "base.html" %}{% import "macros.html" as m %}
+{% block title %}Planes · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Planes de trabajo</h1>
+<p class="sub">Cursos (Coursera…), proyectos y metas con etapas, cronograma y avance. Pega el temario y el sistema reparte todo en tu calendario.</p>
+
+{% if gantt.rows %}<div class="card" style="margin-bottom:16px"><h2>Cronograma general</h2>{{ m.gantt(gantt) }}</div>{% endif %}
+
+<div class="grid g2" style="margin-bottom:16px">
+{% for p in plans_ %}
+  <a class="card" href="/plans/{{ p.id }}" style="color:inherit;text-decoration:none">
+    <div style="display:flex;justify-content:space-between;gap:10px"><div style="font-size:17px;font-weight:650">{{ p.title }}</div>
+      <span class="chip {{ 'bad' if p.state == 'atrasado' else 'warn' if p.state == 'casi al día' else 'ok' }}">{{ p.state }}</span></div>
+    <div class="meta" style="color:var(--muted);font-size:12.5px">{{ p.kind }} · {{ p.hours_per_week | round(1) }} h/semana · {{ p.start_date }} → {{ p.end_date }}{% if p.tags %} · {% for t in p.tags.split(',') %}#{{ t }} {% endfor %}{% endif %}</div>
+    <div class="bar" style="margin:12px 0 6px"><i style="width:{{ p.percent }}%"></i></div>
+    <div class="meta" style="color:var(--muted);font-size:12.5px">{{ p.done }}/{{ p['items'] }} ítems · {{ p.percent }}% · {{ (p.done_minutes / 60) | round(1) }} de {{ (p.minutes / 60) | round(1) }} h</div>
+    {% for i in p.next %}<div class="row"><div class="grow">{{ i.title }}</div><span class="chip muted">{{ i.scheduled_date }}</span></div>{% endfor %}
+  </a>
+{% else %}<div class="card"><div class="empty">Aún no hay planes. Crea el primero abajo — por ejemplo tu curso de Coursera.</div></div>{% endfor %}
+</div>
+
+<div class="card"><h2>Nuevo plan</h2>
+  <form method="post" action="/plans/create" class="grid">
+    <div class="form"><input name="title" placeholder="Nombre (p. ej. Google Data Analytics — Coursera)" required>
+      <select name="kind"><option value="curso">Curso</option><option value="proyecto">Proyecto</option><option value="meta">Meta</option></select>
+      <select name="entity"><option value="personal">Personal</option><option value="business">Negocio</option></select></div>
+    <div class="form"><label>Empieza <input type="date" name="start"></label>
+      <label>Horas por semana <input type="number" step="0.5" min="0.5" name="hours_per_week" value="5" style="width:80px"></label>
+      <input name="tags" placeholder="etiquetas: coursera, datos" style="flex:1 1 200px"><input name="url" placeholder="Enlace del curso (opcional)" style="flex:1 1 200px"></div>
+    <div class="form">Días de trabajo:
+      {% for d in day_labels %}<label><input type="checkbox" name="days" value="{{ loop.index0 }}" {{ 'checked' if loop.index0 < 5 }}> {{ d }}</label>{% endfor %}
+      <select name="project"><option value="">Sin proyecto</option>{% for pr in projects %}<option>{{ pr.name }}</option>{% endfor %}</select></div>
+    <textarea name="outline" rows="9" required placeholder="Pega aquí el temario. Sirve el texto copiado del curso (Semana 1 / Módulo 1 + lecciones con su duración) o este formato:&#10;&#10;## Módulo 1: Fundamentos&#10;- Introducción (video, 12 min)&#10;- Quiz de repaso (quiz, 15 min)&#10;## Módulo 2: ..."></textarea>
+    <div><button>Crear y programar</button> <span class="meta" style="color:var(--muted)">Si el texto es desordenado, pídele a Claude “arma mi plan” y lo estructura por ti.</span></div>
+  </form></div>
+{% if finished %}<div class="card" style="margin-top:16px"><h2>Terminados</h2>{% for f in finished %}<div class="row"><a class="grow" href="/plans/{{ f.id }}">{{ f.title }}</a><span class="chip ok">{{ f.end_date }}</span></div>{% endfor %}</div>{% endif %}
+{% endblock %}

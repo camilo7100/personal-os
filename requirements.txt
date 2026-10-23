@@ -1,0 +1,15 @@
+# PERSONAL_OS — núcleo (Python 3.11+; desarrollado con 3.13)
+fastapi==0.141.1
+uvicorn==0.54.0
+jinja2==3.1.6
+python-multipart==0.0.32
+typer==0.27.2
+keyring==25.7.0
+markdown==3.11
+segno==1.6.6
+cryptography==50.0.2
+openpyxl==3.1.5
+pymupdf==1.28.2
+pillow==12.3.0
+psutil==7.2.2
+genanki==0.13.1

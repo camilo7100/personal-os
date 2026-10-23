@@ -1,0 +1,59 @@
+{% extends "base.html" %}{% import "macros.html" as m %}
+{% block title %}Tareas · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Tareas</h1>
+<p class="sub">Escribe como hablas y el sistema entiende la fecha, la hora, la duración, la prioridad y el proyecto.</p>
+<div class="card" style="margin-bottom:14px">{{ m.quick_add('/tasks?view=' ~ view) }}</div>
+
+<div class="tabs">
+  {% for key, label in views %}<a class="{{ 'on' if key == view }}" href="/tasks?view={{ key }}{{ '&project=' ~ project if project }}{{ '&tag=' ~ tag if tag }}">{{ label }}</a>{% endfor %}
+  <a href="/calendar?view=week">📅 Calendario</a>
+</div>
+<div class="toolbar">
+  <form method="get" action="/tasks" class="form"><input type="hidden" name="view" value="{{ view }}">
+    <select name="project" data-autosubmit><option value="">Todos los proyectos</option>{% for p in projects %}<option {{ 'selected' if p.name == project }}>{{ p.name }}</option>{% endfor %}</select></form>
+  {% if cloud %}{% for c in cloud[:10] %}<a class="chip {{ '' if c.tag == tag else 'muted' }}" href="/tasks?view={{ view }}&tag={{ c.tag }}">#{{ c.tag }} · {{ c.n }}</a>{% endfor %}
+  {% if tag %}<a class="chip bad" href="/tasks?view={{ view }}">quitar filtro ✕</a>{% endif %}{% endif %}
+</div>
+
+{% if view == 'proximo' %}
+  {% if data.overdue %}<div class="card" style="margin-bottom:14px"><h2>Vencidas ({{ data.overdue|length }})</h2>{% for t in data.overdue %}{{ m.task_row(t, today, '/tasks?view=proximo') }}{% endfor %}</div>{% endif %}
+  {% for g in data.groups %}<div class="card" style="margin-bottom:14px"><div class="toolbar" style="margin:0 0 4px"><h2 style="margin:0">{{ g.label }}</h2>
+      <span class="chip {{ 'bad' if g.load.state == 'over' else 'warn' if g.load.state == 'warn' else 'muted' }}">{{ g.load.count }} · {{ g.load.minutes }} min</span>
+      {% if g.load.state == 'over' %}<span class="meta">demasiado para un día</span>{% endif %}</div>
+    {% for t in g['items'] %}{{ m.task_row(t, today, '/tasks?view=proximo') }}{% endfor %}</div>
+  {% else %}{% if not data.overdue and not data.undated %}<div class="card empty">Nada pendiente. ✨ Crea una tarea arriba.</div>{% endif %}{% endfor %}
+  {% if data.undated %}<div class="card"><h2>Sin fecha ({{ data.undated|length }})</h2><p class="meta" style="margin:0 0 6px">Hazlas cuando haya un hueco, dales fecha o arrástralas al calendario.</p>
+    {% for t in data.undated[:12] %}{{ m.task_row(t, today, '/tasks?view=proximo') }}{% endfor %}{% if data.undated|length > 12 %}<div class="meta" style="margin-top:6px">y {{ data.undated|length - 12 }} más en <a href="/tasks?view=cualquier">Cualquier momento</a></div>{% endif %}</div>{% endif %}
+
+{% elif view in ('cualquier', 'algun-dia', 'todas') %}
+  <div class="card">
+    {% if view == 'cualquier' %}<p class="meta" style="margin:0 0 8px">Tareas sin fecha: puedes hacerlas cuando haya un hueco. Dales fecha o arrástralas al calendario.</p>{% endif %}
+    {% if view == 'algun-dia' %}<p class="meta" style="margin:0 0 8px">Ideas y cosas «para algún día»: no presionan ni salen en Hoy hasta que las actives.</p>{% endif %}
+    {% for t in data['items'] %}{{ m.task_row(t, today, '/tasks?view=' ~ view) }}{% else %}<div class="empty">No hay tareas aquí.</div>{% endfor %}</div>
+
+{% elif view == 'tablero' %}
+  <div class="board">
+    {% for key, label, items in data.cols %}<div class="col"><h3>{{ label }} <span>{{ items|length }}</span></h3>
+      {% for t in items %}<div class="kcard {{ 'p' ~ t.priority if t.priority in (1, 2) }}"><a href="/tasks/{{ t.id }}" style="color:inherit">{{ t.title }}</a>
+        <div class="meta">{% if t.project %}{{ t.project }} · {% endif %}{% if t.due_date %}vence {{ t.due_date }}{% endif %}</div>
+        {% if key != 'done' %}<div class="mv">
+          {% for to, lab in (('todo', '← Por hacer'), ('doing', 'En curso →'), ('blocked', '⛔')) %}{% if to != key %}<form class="inline" method="post" action="/tasks/{{ t.id }}/status"><input type="hidden" name="status" value="{{ to }}"><input type="hidden" name="back" value="/tasks?view=tablero"><button class="ghost small">{{ lab }}</button></form>{% endif %}{% endfor %}
+          <form class="inline" method="post" action="/tasks/{{ t.id }}/done"><input type="hidden" name="back" value="/tasks?view=tablero"><button class="ok small">✓</button></form></div>{% endif %}</div>
+      {% else %}<div class="meta">—</div>{% endfor %}</div>{% endfor %}
+  </div>
+
+{% elif view == 'matriz' %}
+  <p class="meta" style="margin:0 0 8px">Matriz de Eisenhower: <b>importante</b> = prioridad urgente o alta · <b>urgente</b> = vence en 3 días o menos.</p>
+  <div class="matrix">
+    {% for key, title, sub, items in data.quads %}<div class="quad {{ key }}"><h3>{{ title }} <span class="pill">{{ items|length }}</span></h3><small>{{ sub }}</small>
+      {% for t in items[:12] %}<div class="row" style="padding:5px 0"><div class="grow"><a href="/tasks/{{ t.id }}" style="color:inherit">{{ t.title }}</a>{% if t.due_date %}<div class="meta">vence {{ t.due_date }}</div>{% endif %}</div>
+        <form class="inline" method="post" action="/tasks/{{ t.id }}/done"><input type="hidden" name="back" value="/tasks?view=matriz"><button class="check">✓</button></form></div>
+      {% else %}<div class="meta">—</div>{% endfor %}{% if items|length > 12 %}<div class="meta">y {{ items|length - 12 }} más</div>{% endif %}</div>{% endfor %}
+  </div>
+
+{% elif view == 'completadas' %}
+  <div class="card">{% for t in data['items'] %}<div class="row"><span class="check on">✓</span><div class="grow">{{ t.title }}<div class="meta">{{ t.project or '' }}{% if t.done_at %} · {{ t.done_at[:16] }}{% endif %}{% if t.actual_minutes %} · {{ t.actual_minutes }} min de enfoque{% endif %}</div></div></div>
+    {% else %}<div class="empty">Aún no has completado tareas.</div>{% endfor %}</div>
+{% endif %}
+{% endblock %}

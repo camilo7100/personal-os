@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Preguntar a la IA · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Preguntar a la IA</h1>
+<p class="sub">Pregunta sobre tus planes y notas. El sistema recupera antes lo relevante de tus datos y lo adjunta a la pregunta.</p>
+<div class="grid g2" style="margin-bottom:16px">
+  <div class="card"><h2>Nueva pregunta</h2>
+    <form method="post" action="/ask/add" class="grid">
+      <textarea name="question" rows="4" required placeholder="Ej.: ¿Qué debería repasar antes del examen del módulo 3? ¿Voy bien para terminar en diciembre?"></textarea>
+      <div class="form"><select name="scope"><option value="general">Sobre todo lo que sé de mí</option>
+        {% for p in plans_ %}<option value="plan:{{ p.id }}" {{ 'selected' if scope == 'plan:' ~ p.id }}>Plan: {{ p.title }}</option>{% endfor %}</select><button>Guardar pregunta</button></div>
+    </form></div>
+  <div class="card"><h2>Cómo se responde</h2>
+    <div class="row"><span class="chip">IA local</span><div class="grow">Al momento, en tu PC; tarda 1–3 min y sirve para preguntas simples. {{ '' if ollama else '(Ollama apagado ahora)' }}</div></div>
+    <div class="row"><span class="chip ok">Claude</span><div class="grow">Más capaz: responde cuando abres una sesión de Claude Code (“responde mis preguntas pendientes”) o en la tarea programada de cada 2 días.</div></div>
+    <div class="row"><span class="chip muted">Privacidad</span><div class="grow">Solo se adjunta lo que salga de tus planes y notas para esa pregunta.</div></div></div>
+</div>
+<div class="card"><h2>Historial</h2>
+{% for q in qs %}
+  <div style="padding:12px 0;border-bottom:1px solid var(--line)">
+    <div style="font-weight:600">{{ q.question }}</div>
+    <div class="meta" style="color:var(--muted);font-size:12.5px;margin:2px 0 8px">#{{ q.id }} · {{ q.created_at }} · {{ q.scope }} ·
+      <span class="chip {{ 'ok' if q.status == 'answered' else 'warn' }}">{{ ('respondida por ' ~ q.answered_by) if q.status == 'answered' else 'pendiente' }}</span></div>
+    {% if q.html %}<div class="md note" style="margin:0">{{ q.html | safe }}</div>
+    {% else %}<form method="post" action="/ask/{{ q.id }}/local"><button class="ghost small" {{ '' if ollama else 'disabled' }}>Responder ahora con IA local</button> <span class="meta" style="color:var(--muted)">o déjala para Claude</span></form>{% endif %}
+  </div>
+{% else %}<div class="empty">Aún no hay preguntas.</div>{% endfor %}</div>
+{% endblock %}

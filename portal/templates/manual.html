@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Manual · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Manual</h1>
+<p class="sub">Todo el sistema explicado: qué es cada cosa, qué pasa cuando haces algo y qué hacer si algo falla.</p>
+<details class="card" style="margin-bottom:16px"><summary style="cursor:pointer;font-weight:650">Índice</summary><div class="md">{{ toc | safe }}</div></details>
+<div class="card md">{{ html | safe }}</div>
+{% endblock %}

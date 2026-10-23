@@ -1,0 +1,40 @@
+{% extends "base.html" %}{% import "macros.html" as m %}
+{% block title %}Revisión semanal · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Revisión semanal</h1>
+<p class="sub">10 minutos una vez por semana (domingo en la noche o lunes temprano) y empiezas la semana sin sorpresas. Es lo que hacen los mejores: cerrar lo viejo, aclarar lo que sigue y repartir la carga.</p>
+<div class="card" style="margin-bottom:16px"><h2>Lista de cierre · {{ r.score }}/{{ r.steps|length }}</h2>
+  {% for name, ok, note in r.steps %}<div class="row"><span class="check {{ 'on' if ok }}">{{ '✓' if ok }}</span><div class="grow">{{ name }}</div><span class="chip {{ 'ok' if ok else 'warn' }}">{{ note }}</span></div>{% endfor %}</div>
+
+<div class="grid g4" style="margin-bottom:16px">
+  {{ m.stat(r.done|length, 'Hechas en 7 días', 'ok' if r.done else '') }}
+  {{ m.stat(r.overdue|length, 'Vencidas', 'bad' if r.overdue else 'ok') }}
+  {{ m.stat((r.focus_min // 60) ~ ' h ' ~ (r.focus_min % 60) ~ ' m', 'Tiempo de enfoque', '') }}
+  {{ m.stat(r.inbox, 'En la bandeja', 'warn' if r.inbox else 'ok') }}
+</div>
+<div class="grid g2">
+  <div class="grid">
+    {% if r.overdue %}<div class="card"><h2>1 · Ponte al día ({{ r.overdue|length }})</h2><p class="meta" style="margin:0 0 6px">Para cada una: hazla, muévela a una fecha real o descártala.</p>
+      {% for t in r.overdue %}{{ m.task_row(t, today, '/review') }}{% endfor %}</div>{% endif %}
+    {% if r.old %}<div class="card"><h2>2 · Tareas viejas sin fecha ({{ r.old|length }})</h2><p class="meta" style="margin:0 0 6px">Llevan más de 30 días. Si ya no importan, descártalas; si importan, dales fecha.</p>
+      {% for t in r.old %}{{ m.task_row(t, today, '/review') }}{% endfor %}</div>{% endif %}
+    {% if r.no_next or r.stalled %}<div class="card"><h2>3 · Proyectos por aclarar</h2>
+      {% for p in r.no_next %}<div class="row"><div class="grow"><b>{{ p.name }}</b><div class="meta">No tiene ninguna tarea abierta: ¿cuál es el siguiente paso?</div></div><a class="btn ghost small" href="/projects">Añadir paso</a></div>{% endfor %}
+      {% for p in r.stalled %}<div class="row"><div class="grow"><b>{{ p.name }}</b><div class="meta">Sin movimiento hace más de 14 días ({{ p.open }} tareas abiertas)</div></div><a class="btn ghost small" href="/tasks?view=todas&project={{ p.name | urlencode }}">Revisar</a></div>{% endfor %}</div>{% endif %}
+    <div class="card"><h2>Lo que lograste</h2>
+      {% for t in r.done[:12] %}<div class="row"><span class="check on">✓</span><div class="grow">{{ t.title }}</div></div>{% else %}<div class="empty">Aún no hay tareas completadas esta semana.</div>{% endfor %}
+      {% if r.habits %}<div class="meta" style="margin-top:8px">Hábitos: {% for h in r.habits %}{{ h.name }} {{ h.days }}/7{{ ' · ' if not loop.last }}{% endfor %}</div>{% endif %}</div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>Cómo viene la próxima semana</h2>
+      {% for l in r.next_week %}<div class="row"><a href="/calendar?view=day&d={{ l.day }}" style="width:110px;color:inherit">{{ l.day[5:] }}</a>
+        <div class="grow"><div class="meter {{ '' if l.state == 'ok' else l.state }}"><i style="width:{{ [l.pct, 100] | min }}%"></i></div></div><span class="meta" style="width:120px;text-align:right">{{ l.count }} · {{ l.minutes // 60 }}h{{ '%02d' | format(l.minutes % 60) }}</span></div>{% endfor %}
+      <div class="form" style="margin-top:10px"><a class="btn" href="/calendar?view=week&d={{ r.next_monday }}">Ver y ordenar la semana</a><a class="btn ghost" href="/plan/day?d={{ r.next_monday }}">✨ Proponer el lunes</a></div></div>
+    <div class="card"><h2>Para cerrar</h2>
+      <div class="row"><div class="grow">Vacía tu <a href="/inbox">bandeja</a> ({{ r.inbox }})</div></div>
+      <div class="row"><div class="grow">Mira tus <a href="/goals">objetivos</a>: ¿cada uno tiene un proyecto activo?</div></div>
+      <div class="row"><div class="grow">Revisa tu <a href="/calendar?view=timeline">línea de tiempo</a> de proyectos</div></div>
+      <div class="row"><div class="grow">Sube lo importante a tu <a href="/calendar?view=week">calendario</a> como bloques de tiempo</div></div></div>
+  </div>
+</div>
+{% endblock %}

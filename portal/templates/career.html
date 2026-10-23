@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Carrera · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Carrera</h1>
+<p class="sub">Seguimiento de vacantes y postulaciones. PERSONAL_OS nunca postula por ti: solo lleva el control.</p>
+<div class="card" style="margin-bottom:16px"><h2>Nueva vacante</h2>
+  <form class="form" method="post" action="/career/add">
+    <input name="company" placeholder="Empresa" required style="flex:1 1 180px"><input name="role" placeholder="Cargo" required style="flex:1 1 200px">
+    <input name="url" placeholder="Enlace (opcional)" style="flex:1 1 200px">
+    <select name="status">{% for s in statuses %}<option>{{ s }}</option>{% endfor %}</select>
+    <input name="next_step" placeholder="Siguiente paso"><input type="date" name="next_step_date"><button>Guardar</button></form></div>
+<div class="card"><h2>En curso</h2>
+<table><tr><th>Empresa</th><th>Cargo</th><th>Estado</th><th>Siguiente paso</th><th></th></tr>
+{% for a in board %}
+<tr><td><b>{{ a.company }}</b>{% if a.url %} <a href="{{ a.url }}" target="_blank" rel="noopener">↗</a>{% endif %}</td><td>{{ a.role }}</td>
+  <td><span class="chip {{ 'ok' if a.status in ('offer','interview') else '' }}">{{ a.status }}</span></td>
+  <td>{{ a.next_step or '' }} {% if a.next_step_date %}<span class="chip {{ 'bad' if a.next_step_date < today else 'muted' }}">{{ a.next_step_date }}</span>{% endif %}</td>
+  <td><form class="form" method="post" action="/career/{{ a.id }}/update" style="flex-wrap:nowrap">
+    <select name="status" data-autosubmit>{% for s in statuses %}<option {{ 'selected' if s == a.status }}>{{ s }}</option>{% endfor %}</select>
+    <input type="hidden" name="next_step" value="{{ a.next_step or '' }}"><input type="hidden" name="next_step_date" value="{{ a.next_step_date or '' }}"></form></td></tr>
+{% else %}<tr><td colspan="5" class="empty">Sin vacantes en seguimiento.</td></tr>{% endfor %}</table></div>
+{% if closed %}<div class="card" style="margin-top:16px"><h2>Cerradas</h2>{% for a in closed %}<div class="row"><div class="grow">{{ a.company }} — {{ a.role }}</div><span class="chip muted">{{ a.status }}</span></div>{% endfor %}</div>{% endif %}
+{% endblock %}

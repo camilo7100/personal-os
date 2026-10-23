@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Estudio · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Estudio</h1>
+<p class="sub">Materias, entregas, notas y tarjetas. Las materias son proyectos con área <b>estudio</b> (créalas en <a href="/projects">Proyectos</a>).</p>
+<div class="grid g2">
+  <div class="grid">
+    <div class="card"><h2>Materias</h2>
+      {% for s in subjects %}<div class="row"><div class="grow"><b>{{ s.name }}</b><div class="meta">{{ s.next_milestone or '' }}{% if s.due_date %} · {{ s.due_date }}{% endif %}</div></div><span class="chip">{{ s.open_tasks }} pendientes</span></div>
+      {% else %}<div class="empty">Crea un proyecto con área “estudio” por cada materia.</div>{% endfor %}</div>
+    <div class="card"><h2>Próximas entregas</h2>
+      {% for t in deadlines %}<div class="row"><div class="grow">{{ t.title }}<div class="meta">{{ t.project }}</div></div>{% if t.due_date %}<span class="chip {{ 'bad' if t.due_date < today else 'muted' }}">{{ t.due_date }}</span>{% endif %}</div>
+      {% else %}<div class="empty">Sin entregas registradas.</div>{% endfor %}</div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>Tarjetas de repaso (Anki)</h2>
+      <p style="margin-top:0">En tus notas de estudio escribe líneas <code>pregunta :: respuesta</code>. Aquí las conviertes en un mazo que se abre con doble clic en Anki (sin duplicar al reimportar).</p>
+      <p><b>{{ cards }}</b> tarjetas detectadas.</p>
+      <form method="post" action="/study/deck"><button {{ '' if cards else 'disabled' }}>Descargar mazo para Anki</button></form></div>
+    <div class="card"><h2>Notas recientes</h2>
+      {% for n in study_notes %}<div class="row"><a href="/knowledge/view?path={{ n.path | urlencode }}">{{ n.title }}</a></div>
+      {% else %}<div class="empty">Sin notas de estudio. Crea una en <a href="/knowledge">Conocimiento</a> (área: estudio).</div>{% endfor %}</div>
+  </div>
+</div>
+{% endblock %}

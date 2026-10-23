@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% import "macros.html" as m %}
+{% block title %}Correo · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Correo</h1>
+<p class="sub">Todas tus cuentas, en solo lectura. Un prefiltro local deja pasar solo lo que importa.</p>
+{% if not profile %}
+<div class="note"><b>Falta conectar tus cuentas.</b> Abre <code>scripts\Correo.cmd</code>, inicia sesión en cada cuenta Gmail/Hotmail en Thunderbird y deja que sincronice. Después aparecerán aquí.</div>
+{% endif %}
+<div class="grid g3" style="margin-bottom:16px">
+  <div class="card" style="grid-column: span 2"><h2>Buscar en todas las cuentas</h2>
+    <form class="form" method="get" action="/mail"><input name="q" value="{{ q }}" placeholder="factura, entrevista, nombre…"><button>Buscar</button>
+      <button formaction="/mail/ingest" formmethod="post" class="ghost">↻ Actualizar</button></form></div>
+  <div class="card"><h2>Cuentas</h2>{% for a in accounts %}<div class="row"><div class="grow">{{ a.account }}</div><span class="chip muted">{{ a.n }}</span></div>{% else %}<div class="empty">Sin cuentas aún.</div>{% endfor %}</div>
+</div>
+{% if q %}<div class="card" style="margin-bottom:16px"><h2>Resultados para “{{ q }}”</h2>
+  {% for e in found %}<div class="row"><div class="grow"><div>{{ e.subject }}</div><div class="meta">{{ e.from_name or e.from_addr }} · {{ e.account }} · {{ (e.date or '')[:10] }}</div></div>{{ m.cat_chip(e.category) }}</div>{% else %}<div class="empty">Sin resultados.</div>{% endfor %}</div>{% endif %}
+<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">Para revisar ({{ todo|length }})</h2>
+  {% if todo %}<form method="post" action="/mail/review-all"><button class="ghost small">Marcar todo como revisado</button></form>{% endif %}</div>
+  {% for e in todo %}
+  <div class="row"><div class="grow"><div>{{ e.subject }}</div>
+    <div class="meta">{{ e.from_name or e.from_addr }} · {{ e.account }} · {{ (e.date or '')[:10] }}</div>
+    <div class="meta">{{ e.snippet }}</div></div>
+    {{ m.cat_chip(e.category) }}
+    <form class="inline" method="post" action="/mail/to-task/{{ e.id }}"><button class="small">→ tarea</button></form>
+    <form class="inline" method="post" action="/mail/review/{{ e.id }}"><button class="ghost small">✓</button></form></div>
+  {% else %}<div class="empty">Nada pendiente. Lo demás (promociones, newsletters, códigos) ya se filtró solo.</div>{% endfor %}</div>
+{% if stats %}<p class="sub" style="margin-top:14px">Últimos 7 días — filtrados por categoría: {% for s in stats %}{{ s.category }} {{ s.n }}{{ ' · ' if not loop.last }}{% endfor %}</p>{% endif %}
+{% endblock %}

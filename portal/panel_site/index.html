@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; frame-src about:; base-uri 'none'">
+  <title>Panel</title>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+  <div id="bar" hidden><span id="when"></span><button id="forget" type="button">Olvidar este equipo</button></div>
+  <div id="msg" class="center" hidden></div>
+  <iframe id="page" title="Panel" sandbox="allow-top-navigation-by-user-activation" hidden></iframe>
+  <script src="viewer.js"></script>
+</body>
+</html>

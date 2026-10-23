@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ {'login': 'Entrar', 'unlock': 'Desbloquear', 'setup': 'Crear PIN'}[mode] }} · PERSONAL_OS</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main style="max-width:420px;margin:12vh auto;padding:0 20px">
+  <div class="brand" style="padding:0 0 18px"><i></i>PERSONAL_OS</div>
+  <div class="card">
+    {% if mode == 'setup' %}
+      <h1 style="font-size:22px">Protege tu portal</h1>
+      <p class="sub">Crea un PIN (mínimo 6 caracteres). Se guarda cifrado en el Administrador de credenciales de Windows, nunca en un archivo.</p>
+      <form method="post" action="/setup" class="grid">
+        <input type="password" name="pin" placeholder="PIN nuevo" autocomplete="new-password" required autofocus>
+        <input type="password" name="pin2" placeholder="Repite el PIN" autocomplete="new-password" required>
+        <button>Guardar PIN</button>
+      </form>
+    {% else %}
+      <h1 style="font-size:22px">{{ 'Sección protegida' if mode == 'unlock' else 'Entrar' }}</h1>
+      <p class="sub">{{ 'Escribe tu PIN.' if mode == 'unlock' else 'Escribe tu PIN.' }}</p>
+      <form method="post" action="/{{ mode }}" class="grid">
+        <input type="hidden" name="next" value="{{ next }}">
+        <input type="password" name="pin" placeholder="PIN" autocomplete="current-password" required autofocus>
+        <button>{{ 'Desbloquear' if mode == 'unlock' else 'Entrar' }}</button>
+      </form>
+    {% endif %}
+    {% if error %}<p style="color:var(--bad);margin:12px 0 0">{{ error }}</p>{% endif %}
+    {% if mode != 'setup' %}<details style="margin-top:14px"><summary style="cursor:pointer;color:var(--muted)">¿Olvidaste el PIN?</summary>
+      <p class="sub" style="margin:8px 0 0">No pierdes ningún dato: el PIN solo protege el portal. Desde este PC abre <b>menú Inicio → PERSONAL_OS (herramientas) → Restablecer PIN</b> y crea uno nuevo. Solo se puede hacer con tu sesión de Windows.</p></details>{% endif %}
+  </div>
+</main>
+</body>
+</html>

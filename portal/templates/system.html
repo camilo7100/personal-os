@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Sistema · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Sistema</h1>
+<p class="sub">Salud de tu equipo, copias de seguridad y alertas.</p>
+{% macro tile(key, label, unit='', fmt='{:.0f}') %}{% set h = health.get(key) %}
+<div class="card stat {{ 'bad' if h and h.status == 'crit' else 'warn' if h and h.status == 'warn' else '' }}"><div class="n">{{ (fmt.format(h.value) ~ unit) if h and h.value is not none else '—' }}</div><div class="l">{{ label }}</div></div>{% endmacro %}
+<div class="grid g4" style="margin-bottom:16px">
+  {{ tile('disk_free_gb', 'Disco libre (C:)', ' GB') }}{{ tile('ram_used_pct', 'RAM en uso', '%') }}{{ tile('cpu_pct', 'CPU', '%') }}
+  <div class="card stat {{ '' if ollama else 'warn' }}"><div class="n">{{ 'activa' if ollama else 'apagada' }}</div><div class="l">IA local (Ollama)</div></div>
+</div>
+<div class="grid g2">
+  <div class="grid">
+    <div class="card"><h2>Copias de seguridad</h2>
+      {% for key, label in [('backup_prepared_age_days','Copia esencial preparada en C: (semanal)'),('backup_offsite_age_days','Copia cifrada en OneDrive (semanal)'),('backup_essential_ext_age_days','Esencial en el disco externo (mensual)'),('backup_full_ext_age_days','Completa en el disco externo (trimestral)')] %}
+      {% set h = health.get(key) %}
+      <div class="row"><div class="grow">{{ label }}</div>
+        {% if h and h.value is not none %}<span class="chip {{ 'bad' if h.status == 'crit' else 'warn' if h.status == 'warn' else 'ok' }}">hace {{ h.value | int }} d</span>
+        {% else %}<span class="chip warn">nunca</span>{% endif %}</div>{% endfor %}
+      {% set g = health.get('backup_essential_gb') %}{% if g %}<div class="row"><div class="grow">Peso de la copia esencial</div><span class="chip {{ 'warn' if g.status != 'ok' else 'muted' }}">{{ g.value }} GB / tope 1 GB</span></div>{% endif %}
+      <p class="meta" style="color:var(--muted);font-size:12.5px;margin:10px 0 0">Doble clic en <code>scripts\Backup-Esencial.cmd</code> o <code>Backup-Completo.cmd</code> con el disco conectado.</p></div>
+    <div class="card"><h2>Últimos fallos de jobs</h2>{% for f in failed %}<div class="row"><span class="chip bad">{{ f.job }}</span><div class="grow meta">{{ f.started_at }} · {{ f.message }}</div></div>{% else %}<div class="empty">Sin fallos registrados.</div>{% endfor %}</div>
+  </div>
+  <div class="grid">
+    <div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">Alertas abiertas</h2>
+      {% if alerts %}<form method="post" action="/alerts/ack-all"><button class="ghost small">Archivar todas</button></form>{% endif %}</div>
+      {% for a in alerts %}<div class="row"><span class="chip {{ 'bad' if a.level == 'CRITICAL' else 'warn' if a.level == 'IMPORTANT' else 'muted' }}">{{ a.level }}</span>
+        <div class="grow">{{ a.title }}<div class="meta">{{ a.ts }}{% if a.detail %} · {{ a.detail[:100] }}{% endif %}</div></div>
+        <form class="inline" method="post" action="/alerts/{{ a.id }}/ack"><button class="ghost small">✓</button></form></div>
+      {% else %}<div class="empty">Sin alertas ✅</div>{% endfor %}</div>
+    <div class="card"><h2>Auditoría reciente</h2>
+      {% for e in audit %}<div class="row"><div class="grow" style="font-size:13px">{{ e.action }} <span class="meta">{{ e.target or '' }}</span></div><span class="chip muted">{{ e.actor }}</span></div>{% endfor %}</div>
+  </div>
+</div>
+{% endblock %}

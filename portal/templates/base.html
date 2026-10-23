@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}PERSONAL_OS{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" href="/static/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+  <meta name="theme-color" content="#4f46e5">
+</head>
+<body>
+<div class="layout">
+  <aside class="side">
+    <div class="brand"><i></i>PERSONAL_OS</div>
+    <nav class="nav">
+      {% set ns = namespace(g='') %}
+      {% for grp, key, label, url in nav %}
+        {% if grp != ns.g %}<div class="nav-group">{{ grp }}</div>{% set ns.g = grp %}{% endif %}
+        <a href="{{ url }}" class="{{ 'active' if key == active }}">{{ label }}
+          {% if badges.get(key) %}<span class="badge {{ 'warn' if key in ('tareas', 'sistema') }}">{{ badges[key] }}</span>{% endif %}</a>
+      {% endfor %}
+    </nav>
+    <div class="nav" style="margin-top:18px;border-top:1px solid var(--line);padding-top:10px">
+      {% if has_pin %}<a href="/logout">🔒 Bloquear portal</a>{% endif %}
+      {% if remote %}<span class="chip warn" style="margin:6px 10px;display:inline-block">acceso remoto · solo lectura de lo sensible</span>{% endif %}
+    </div>
+  </aside>
+  <main>
+    {% if pin_missing and not remote %}<div class="note"><b>Tu portal no tiene PIN.</b> Solo se abre desde este PC, pero crea uno ahora: <a href="/setup">Crear PIN</a>.</div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% if flash %}<div class="flash" id="flash">{{ flash }}</div>{% endif %}
+<script src="/static/app.js"></script>
+<script src="/static/tasks.js"></script>
+</body>
+</html>

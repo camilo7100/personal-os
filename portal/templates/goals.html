@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Objetivos · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Objetivos</h1>
+<p class="sub">Del año al mes: objetivo → proyectos → tareas. Sin métricas de más.</p>
+<div class="card" style="margin-bottom:16px">
+  <form class="form" method="post" action="/goals/add"><input name="title" placeholder="Nuevo objetivo…" required>
+    <select name="horizon"><option value="year">Año</option><option value="quarter">Trimestre</option><option value="month">Mes</option></select>
+    <input type="date" name="due"><button>Crear</button></form></div>
+<div class="card">
+{% for g in gs %}
+  <div class="row"><div class="grow"><div style="font-weight:600">{{ g.title }}</div>
+    <div class="meta">{{ {'year':'Año','quarter':'Trimestre','month':'Mes'}[g.horizon] }}{% if g.due_date %} · {{ g.due_date }}{% endif %} · {{ g.projects }} proyectos</div></div>
+    <form class="inline" method="post" action="/goals/{{ g.id }}/status"><input type="hidden" name="status" value="done"><button class="ok small">Logrado</button></form>
+    <form class="inline" method="post" action="/goals/{{ g.id }}/status"><input type="hidden" name="status" value="dropped"><button class="ghost small">Soltar</button></form></div>
+{% else %}<div class="empty">Define tu primer objetivo.</div>{% endfor %}
+</div>
+{% endblock %}

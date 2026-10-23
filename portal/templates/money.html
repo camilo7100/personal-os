@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Finanzas · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Finanzas</h1>
+<p class="sub">Tus ingresos (solo lo que te paga tu trabajo), gastos, ahorros y metas en un vistazo. Los movimientos entre tus propias cuentas (traslados al fondo, recargas, pagos de tarjeta) no se cuentan como ingreso ni gasto. Solo por importación de extractos (CSV) y saldos que tú anotas: sin conectar bancos. Todo queda en tu PC.</p>
+<div class="form" style="margin-bottom:14px">
+  <form method="get" action="/money/go" class="form">
+    <select name="period" data-autosubmit title="Elige un mes o un año completo">
+      <optgroup label="Año completo">{% for yy in years %}<option value="{{ yy }}" {{ 'selected' if false }}>Año {{ yy }}</option>{% endfor %}</optgroup>
+      <optgroup label="Mes">{% for mo in months %}<option value="{{ mo }}" {{ 'selected' if s.month == mo }}>{{ mo }}</option>{% endfor %}</optgroup></select>
+    <select name="entity" data-autosubmit><option value="">Personal + negocio</option><option value="personal" {{ 'selected' if entity == 'personal' }}>Personal</option><option value="business" {{ 'selected' if entity == 'business' }}>Negocio</option></select></form>
+</div>
+
+<div class="grid g4" style="margin-bottom:16px">
+  <div class="card stat ok"><div class="n">{{ fmt(s.income) }}</div><div class="l">Ingresos por trabajo {{ s.month }}{{ ' · supuesto (falta Bancolombia)' if s.income_assumed else '' }}{{ '' if complete else ' · parcial' }}</div></div>
+  <div class="card stat bad"><div class="n">{{ fmt(s.expense) }}</div><div class="l">Gastos</div></div>
+  <div class="card stat {{ 'ok' if s.net >= 0 else 'bad' }}"><div class="n">{{ fmt(s.net) }}</div><div class="l">Neto del mes</div></div>
+  <div class="card stat {{ '' if rate is none else 'ok' if rate >= 20 else 'warn' if rate >= 10 else 'bad' }}"><div class="n">{{ (rate ~ '%') if rate is not none else '—' }}</div><div class="l">{{ 'Tasa de ahorro (meta 20%)' if complete else 'Tasa de ahorro: mes incompleto' }}</div></div>
+</div>
+
+<div class="card" style="margin-bottom:16px"><h2>Lo que veo en tus finanzas</h2>
+  {% for t in tips %}<div class="row"><span style="font-size:18px">{{ '✅' if t.level == 'ok' else '⚠️' if t.level == 'warn' else '💡' }}</span><div class="grow">{{ t.text }}</div></div>{% endfor %}</div>
+
+{% if cards %}<div class="card" style="margin-bottom:16px"><h2>Tus tarjetas de crédito</h2>
+  <div class="grid g2">{% for c in cards %}<div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><b>{{ c.name }}</b>
+      <span class="chip {{ 'bad' if c.days_left is not none and c.days_left <= 3 and c.days_left >= 0 else 'warn' if c.days_left is not none and c.days_left <= 10 and c.days_left >= 0 else 'muted' }}">{% if c.days_left is not none and c.days_left >= 0 %}paga en {{ c.days_left }} días · {{ c.due_date }}{% else %}corte {{ c.period_end }}{% endif %}</span></div>
+    <div style="font-size:24px;font-weight:750;margin:4px 0">{{ fmt(c.total_due) }}</div>
+    <div class="meta">pago mínimo {{ fmt(c.min_payment) }} · cupo {{ fmt(c.credit_limit) }}{% if c.pending_installments %} · cuotas por facturar {{ fmt(c.pending_installments) }}{% endif %}</div>
+    <div class="bar {{ 'over' if c.util >= 30 }}" style="margin-top:6px"><i style="width:{{ [c.util, 100] | min }}%"></i></div><div class="meta">{{ c.util }}% del cupo usado (sano: menos de 30%)</div>
+  </div>{% endfor %}</div>
+  <p class="meta" style="margin:10px 0 0">Paga siempre el <b>total</b>: así no pagas intereses. Las tareas de pago ya tienen el monto y la fecha de este corte.</p></div>{% endif %}
+
+<div class="grid g2" style="margin-bottom:16px">
+  <div class="card"><h2>Ingresos vs gastos · 12 meses</h2>{{ bars | safe }}
+    <div class="legend"><span><i style="background:var(--ok)"></i>Ingresos</span><span><i style="background:var(--bad)"></i>Gastos</span></div></div>
+  <div class="card"><h2>Gastos por categoría</h2>
+    {% if legend %}<div class="donut-wrap">{{ donut | safe }}
+      <div class="dlegend">{% for l in legend %}<div><span class="sw {{ l.cls }}"></span>{{ l.name }} <b>{{ l.pct }}%</b><small>{{ fmt(l.value) }}</small></div>{% endfor %}</div></div>
+    {% else %}<div class="empty">Sin gastos este mes. Importa un extracto →</div>{% endif %}</div>
+</div>
+
+<div class="grid g2" style="margin-bottom:16px">
+  <div class="card"><h2>Patrimonio y ahorros en el tiempo</h2>
+    {% if networth_svg %}<div style="font-size:26px;font-weight:750;margin-bottom:4px">{{ fmt(networth_last) }}</div>{{ networth_svg | safe }}
+    {% else %}<div class="empty">Anota el saldo de tus cuentas en dos fechas distintas y aparece la línea de tu patrimonio.</div>{% endif %}</div>
+  <div class="card"><h2>Gasto día a día</h2>
+    <div class="heat-head">{% for d in ['L', 'M', 'M', 'J', 'V', 'S', 'D'] %}<span>{{ d }}</span>{% endfor %}</div>
+    <div class="heat">{% for c in heat.cells %}{% if c %}<i class="h{{ c.level }}" title="Día {{ c.day }} · {{ fmt(c.value) }}">{{ c.day }}</i>{% else %}<i class="blank"></i>{% endif %}{% endfor %}</div>
+    <p class="meta" style="margin:8px 0 0">Más oscuro = más gasto{% if heat.max %} (máximo del mes {{ fmt(heat.max) }}){% endif %}.</p></div>
+</div>
+
+<div class="grid g2" style="margin-bottom:16px">
+  <div class="card"><h2>Dónde está tu patrimonio</h2>
+    {% if comp_legend %}<div class="donut-wrap">{{ comp_svg | safe }}
+      <div class="dlegend">{% for l in comp_legend %}<div><span class="sw {{ l.cls }}"></span>{{ l.name }} <b>{{ l.pct }}%</b><small>{{ fmt(l.value) }}</small></div>{% endfor %}</div></div>
+    {% else %}<div class="empty">Registra saldos o importa extractos.</div>{% endif %}</div>
+  <div class="card"><h2>Extractos por mes</h2>
+    {% if cov.rows %}<table><tr><th></th>{% for m in cov.months %}<th style="text-align:center">{{ m[5:] }}</th>{% endfor %}</tr>
+      {% for r in cov.rows %}<tr><td>{{ r.account }}</td>{% for c in r.cells %}<td style="text-align:center">{{ '✅' if c else ('≈' if r.assumed else '·') }}</td>{% endfor %}</tr>{% endfor %}
+      <tr><td><b>Mes completo</b></td>{% for c in cov.complete %}<td style="text-align:center">{{ '✔' if c else '—' }}</td>{% endfor %}</tr></table>
+      <p class="meta" style="margin:8px 0 0">Nu, RappiCard y RappiCuenta llegan solos a tu correo. Bancolombia y Fiducuenta: descárgalos y déjalos en <code>Documentos\PERSONAL_OS-Finanzas\Extractos</code>.</p>
+    {% else %}<div class="empty">Aún no hay extractos importados.</div>{% endif %}
+    {% if recurring %}<h2 style="margin-top:14px">Cobros que se repiten</h2>
+      {% for r in recurring %}<div class="row"><div class="grow">{{ r.name }}<div class="meta">{{ r.count }} cobros en {{ r.months }} meses</div></div><b>≈{{ fmt(r.per_month) }}/mes</b></div>{% endfor %}{% endif %}</div>
+</div>
+
+<div class="grid g2">
+  <div class="grid">
+    <div class="card"><h2>Presupuestos del mes</h2>
+      {% for c in s.by_category %}
+      <div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><span>{{ c.category }}</span><b>{{ fmt(-c.total) }}</b></div>
+        {% if c.budget %}<div class="bar {{ 'over' if c.over_budget }}" style="margin-top:4px"><i style="width:{{ [100, (100 * -c.total / c.budget) | round] | min }}%"></i></div>
+        <div class="meta" style="color:var(--muted);font-size:12px">presupuesto {{ fmt(c.budget) }}</div>{% endif %}</div>
+      {% else %}<div class="empty">Aún no hay gastos.</div>{% endfor %}
+      <form class="form" method="post" action="/money/budget" style="margin-top:10px"><input name="category" placeholder="Categoría" required><input type="number" name="amount" placeholder="Presupuesto mensual" required style="width:170px"><button class="ghost">Guardar</button></form></div>
+    <div class="card"><h2>Metas de ahorro</h2>
+      {% for g in goals %}<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between"><b>{{ g.name }}</b><span>{{ fmt(g.saved) }} / {{ fmt(g.target) }}</span></div>
+        <div class="bar" style="margin:5px 0"><i style="width:{{ g.pct }}%"></i></div>
+        <div class="meta">{{ g.pct }}%{% if g.deadline %} · meta {{ g.deadline }}{% endif %}{% if g.per_month %} · ≈{{ fmt(g.per_month) }} al mes para llegar{% endif %}</div>
+        <form class="form" method="post" action="/money/goal/{{ g.id }}/saved" style="margin-top:4px"><input type="number" name="saved" value="{{ g.saved | round | int }}" style="width:140px"><button class="ghost small">Actualizar ahorrado</button></form></div>
+      {% else %}<div class="empty">Crea una meta (viaje a Aruba, fondo de emergencia, computador…) y mira tu avance.</div>{% endfor %}
+      <form class="form" method="post" action="/money/goal" style="margin-top:10px"><input name="name" placeholder="Meta (p. ej. Fondo de emergencia)" required><input type="number" name="target" placeholder="Monto objetivo" required style="width:150px"><input type="date" name="deadline" title="Fecha meta">
+        <select name="account"><option value="">Ahorro manual</option>{% for a in accounts %}<option>{{ a.name }}</option>{% endfor %}</select><button class="ghost">Crear</button></form></div>
+    <div class="card"><h2>Dónde se va el dinero</h2>
+      {% for t in tops %}<div class="row"><div class="grow">{{ t.name }}<div class="meta">{{ t.count }} {{ 'movimiento' if t.count == 1 else 'movimientos' }}</div></div><b>{{ fmt(t.total) }}</b></div>{% else %}<div class="empty">Sin datos.</div>{% endfor %}</div>
+    {% if tlinks.pending or tlinks.review %}<div class="card"><h2>Traslados entre tus cuentas</h2>
+      <p class="meta" style="margin:0 0 6px">No son gasto ni ingreso. {{ tlinks.pairs }} ya cuadran con su par; estos esperan a la otra cuenta.</p>
+      {% for t in tlinks.review %}<div class="row"><div class="grow">{{ t.description[:44] }}<div class="meta">{{ t.date }} · {{ t.account }} → {{ t.other }} · <b>sin cuadrar: revisa</b></div></div><b>{{ fmt(t.amount) }}</b></div>{% endfor %}
+      {% for t in tlinks.pending %}<div class="row"><div class="grow">{{ t.description[:44] }}<div class="meta">{{ t.date }} · {{ t.account }} → {{ t.other }} · esperando su extracto</div></div><b>{{ fmt(t.amount) }}</b></div>{% endfor %}</div>{% endif %}
+    {% if s.other_in %}<div class="card"><h2>Otras entradas (no son ingreso)</h2>
+      <p class="meta" style="margin:0 0 6px">Dinero que entró pero no es de tu trabajo: no suma a tus ingresos ni a la tasa de ahorro.</p>
+      {% for o in s.other_in %}<div class="row"><div class="grow">{{ o.category }}</div><b>{{ fmt(o.total) }}</b></div>{% endfor %}</div>{% endif %}
+    {% if clarify %}<div class="card"><h2>Por aclarar ({{ clarify|length }})</h2>
+      <p class="meta" style="margin:0 0 6px">No se cuentan como ingreso ni gasto hasta que les pongas categoría (p. ej. «Movimiento entre mis cuentas», «Préstamo a familia», «Inversión», «Viaje»).</p>
+      {% for t in clarify %}<div class="row"><div class="grow">{{ t.description[:50] }}<div class="meta">{{ t.date }} · {{ t.account }}</div></div>
+        <form class="inline" method="post" action="/money/categorize/{{ t.id }}"><input name="category" placeholder="¿Qué fue?" style="width:150px;padding:3px 8px" required></form>
+        <b style="color:var(--{{ 'ok' if t.amount > 0 else 'ink' }})">{{ fmt(t.amount) }}</b></div>{% endfor %}</div>{% endif %}
+    <div class="card"><h2>Últimos movimientos</h2>
+      {% for t in txs %}<div class="row"><div class="grow">{{ t.description[:60] }}<div class="meta">{{ t.date }} · {{ t.account }}{% if t.entity == 'business' %} · negocio{% endif %}</div></div>
+        {% if t.category %}<span class="chip muted">{{ t.category }}</span>{% else %}
+        <form class="inline" method="post" action="/money/categorize/{{ t.id }}"><input name="category" placeholder="categoría" style="width:110px;padding:3px 8px" required></form>{% endif %}
+        <b style="color:var(--{{ 'ok' if t.amount > 0 else 'ink' }})">{{ fmt(t.amount) }}</b></div>
+      {% else %}<div class="empty">Sin movimientos.</div>{% endfor %}</div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>Importar extracto (CSV)</h2>
+      {% if not accounts %}<div class="note">Primero crea una cuenta (abajo).</div>{% endif %}
+      <form method="post" action="/money/import" enctype="multipart/form-data" class="grid">
+        <select name="account">{% for a in accounts %}<option>{{ a.name }}</option>{% endfor %}</select>
+        <input type="file" name="file" accept=".csv,.txt" required>
+        <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="auto" value="1" checked style="width:auto"> Detectar columnas automáticamente (recomendado)</label>
+        <details><summary style="cursor:pointer;color:var(--muted)">Columnas a mano (si la detección falla)</summary>
+          <div class="form" style="margin-top:8px"><input name="delimiter" value=";" style="width:60px" title="Separador"><input name="date_col" value="fecha"><input name="desc_col" value="descripcion">
+            <input name="amount_col" placeholder="monto (firmado)"><input name="debit_col" placeholder="débito"><input name="credit_col" placeholder="crédito"></div></details>
+        <div><button>Importar</button> <span class="meta" style="color:var(--muted)">Reimportar el mismo archivo no duplica.</span></div></form></div>
+    <div class="card"><h2>Cuentas y saldos</h2>
+      {% for b in balances %}<div class="row"><div class="grow">{{ b.name }}<div class="meta">{{ b.kind }}{% if b.date %} · saldo al {{ b.date }}{% endif %}</div></div>
+        <span class="chip {{ 'ok' if b.entity == 'business' else 'muted' }}">{{ 'negocio' if b.entity == 'business' else 'personal' }}</span><b>{{ fmt(b.amount) if b.amount is not none else '—' }}</b></div>
+      {% else %}<div class="empty">Crea tus cuentas: ahorros, corriente, efectivo, tarjetas.</div>{% endfor %}
+      <form class="form" method="post" action="/money/balance" style="margin-top:10px"><select name="account">{% for a in accounts %}<option>{{ a.name }}</option>{% endfor %}</select>
+        <input type="number" step="any" name="amount" placeholder="Saldo (negativo si es deuda)" required style="width:190px"><input type="date" name="day" title="Fecha del saldo"><button class="ghost">Guardar saldo</button></form>
+      <form class="form" method="post" action="/money/account" style="margin-top:10px"><input name="name" placeholder="Nueva cuenta (p. ej. Bancolombia ahorros)" required>
+        <select name="kind"><option value="bank">Corriente/débito</option><option value="savings">Ahorros</option><option value="credit">Tarjeta de crédito</option><option value="cash">Efectivo</option><option value="invest">Inversión</option></select>
+        <select name="entity"><option value="personal">Personal</option><option value="business">Negocio</option></select><button class="ghost">Crear</button></form></div>
+    <div class="card stat"><div class="n">{{ fmt(subs_cost) }}</div><div class="l">Suscripciones al mes (<a href="/life">ver</a>)</div></div>
+  </div>
+</div>
+{% endblock %}

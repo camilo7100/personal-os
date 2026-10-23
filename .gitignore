@@ -1,0 +1,15 @@
+data/
+*.db
+*.db-wal
+*.db-shm
+config/secrets*
+.env
+__pycache__/
+.venv/
+# Config local con datos personales (hay un .example versionable)
+config/portal.json
+config/finance.json
+config/money_rules.json
+# Resto de una corrección puntual, sin uso
+scripts/_p60fix.py
+config/panel.json

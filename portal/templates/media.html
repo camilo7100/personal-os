@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Multimedia · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Multimedia</h1>
+<p class="sub">Arrastra archivos a una carpeta y el sistema los procesa solo (video, audio, imágenes, PDF). Todo local, nada se sube.</p>
+<div class="card" style="margin-bottom:16px">
+  <form class="form" method="post" action="/media/open"><button>📂 Abrir carpeta de trabajo</button>
+    <button formaction="/media/run" class="ghost">▶ Procesar ahora</button><span class="meta" style="color:var(--muted)">{{ home }}</span></form></div>
+<div class="card" style="margin-bottom:16px"><h2>Editores para trabajo creativo</h2>
+  <div class="grid g3">
+  {% for e in editors %}
+    <div class="row" style="border:1px solid var(--line);border-radius:12px;padding:12px;align-items:flex-start">
+      <div class="grow"><b>{{ e.label.split(' — ')[0] }}</b><div class="meta">{{ e.label.split(' — ')[1] }}</div></div>
+      {% if e.path %}<form class="inline" method="post" action="/media/editor"><input type="hidden" name="editor" value="{{ e.key }}"><button class="small">Abrir</button></form>
+      {% else %}<span class="chip warn">por instalar</span>{% endif %}
+    </div>
+  {% endfor %}
+  </div>
+  <p class="meta" style="color:var(--muted);font-size:12.5px;margin:10px 0 0">Los que falten requieren permisos de administrador: ejecuta <code>automation\Install-Editors-Admin.ps1</code> una vez. Los editores se abren en tu PC; los archivos no se suben a ningún sitio.</p></div>
+<div class="grid g2">
+  <div class="card"><h2>Carpetas (arrastra aquí)</h2>
+    {% for a in actions %}<div class="row"><div class="grow"><b>{{ a.split('-', 1)[0] }}</b> · {{ a.split('-', 1)[1].replace('-', ' ') }}</div>
+      <form class="inline" method="post" action="/media/open"><input type="hidden" name="folder" value="{{ a }}"><button class="ghost small">Abrir</button></form></div>{% endfor %}
+    <p class="meta" style="color:var(--muted);font-size:12.5px;margin-bottom:0">Cada 10 minutos el sistema revisa las carpetas. Resultado → <b>Salida</b>; el original pasa a <b>Originales-procesados</b>.</p></div>
+  <div class="grid">
+    <div class="card"><h2>Salida reciente</h2>
+      {% for o in outputs %}<div class="row"><div class="grow">{{ o.name }}</div><span class="chip muted">{{ o.kb }} KB</span></div>{% else %}<div class="empty">Aún no hay resultados.</div>{% endfor %}
+      <form class="inline" method="post" action="/media/open" style="margin-top:8px"><input type="hidden" name="folder" value="Salida"><button class="ghost small">Abrir Salida</button></form></div>
+    <div class="card"><h2>Desde la terminal</h2>
+      <p style="margin:0;font-size:13.5px;color:var(--muted)"><code>pos media compress|audio|trim|gif|transcribe|resize|webp|text &lt;archivo&gt;</code><br>La transcripción usa un modelo local (la primera vez descarga ~460 MB). El OCR usa el modelo de visión local.</p></div>
+  </div>
+</div>
+{% endblock %}

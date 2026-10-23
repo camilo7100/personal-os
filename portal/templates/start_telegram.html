@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Conectar Telegram · PERSONAL_OS{% endblock %}
+{% block content %}
+<p class="sub" style="margin-bottom:6px"><a href="/start">← Primeros pasos</a></p>
+<h1>Conectar Telegram</h1>
+<p class="sub">Para que las alertas te lleguen solas al celular y puedas escribirle al sistema (texto, voz y comandos como /hoy).</p>
+{% if connected %}<div class="note"><b>Ya está conectado.</b> Puedes escribirle /ayuda a tu bot para ver los comandos.</div>{% endif %}
+<div class="grid g2">
+  <div class="card"><h2>1. Crea tu bot</h2>
+    <ol style="padding-left:18px;margin:0">
+      <li>En Telegram busca <b>@BotFather</b> y escribe <code>/newbot</code>.</li>
+      <li>Ponle un nombre y un usuario (termina en <code>bot</code>).</li>
+      <li>BotFather te da un <b>token</b> largo. Cópialo.</li></ol>
+    <form method="post" action="/start/telegram/token" class="grid" style="margin-top:14px">
+      <input type="password" name="token" placeholder="Pega aquí el token del bot" autocomplete="off" required>
+      <div><button>Verificar token</button></div></form>
+    <p class="meta" style="color:var(--muted);font-size:12.5px;margin:10px 0 0">El token se guarda cifrado en Windows y nunca vuelve a mostrarse.</p></div>
+  <div class="card"><h2>2. Salúdalo</h2>
+    {% if has_token %}
+      <p>{% if bot %}Abre <b>@{{ bot }}</b> en Telegram{% else %}Abre tu bot en Telegram{% endif %} y escríbele <code>/start</code>. Luego pulsa el botón.</p>
+      <form method="post" action="/start/telegram/verify"><button>Ya le escribí, verificar</button></form>
+      <p class="meta" style="color:var(--muted);font-size:12.5px;margin:10px 0 0">El sistema solo obedecerá a ese chat: cualquier otra persona que escriba al bot es ignorada.</p>
+    {% else %}<p class="empty">Primero verifica el token (paso 1).</p>{% endif %}</div>
+</div>
+{% endblock %}

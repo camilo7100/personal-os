@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Desarrollo · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Desarrollo</h1>
+<p class="sub">Estado de tus repositorios en Documents\GitHub\{% if checked %} · revisado {{ checked }}{% endif %}</p>
+<form method="post" action="/dev/scan" style="margin-bottom:14px"><button>↻ Revisar ahora</button></form>
+<div class="card"><table><tr><th>Repositorio</th><th>Rama</th><th>Cambios sin guardar</th><th>Sin subir / sin bajar</th><th>Último commit</th></tr>
+{% for r in repos %}<tr><td><b>{{ r.name }}</b></td><td>{{ r.branch }}</td>
+  <td>{% if r.dirty %}<span class="chip warn">{{ r.dirty }}</span>{% else %}<span class="chip ok">limpio</span>{% endif %}</td>
+  <td>{{ '↑' ~ r.ahead if r.ahead }} {{ '↓' ~ r.behind if r.behind }}</td><td class="meta" style="color:var(--muted)">{{ r.last_commit }}</td></tr>
+{% else %}<tr><td colspan="5" class="empty">Sin repositorios detectados. Pulsa “Revisar ahora”.</td></tr>{% endfor %}</table></div>
+{% endblock %}

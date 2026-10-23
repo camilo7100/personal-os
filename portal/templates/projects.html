@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Proyectos · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Proyectos</h1>
+<p class="sub">Activos, bloqueados y su siguiente paso.</p>
+<div class="card" style="margin-bottom:16px">
+  <form class="form" method="post" action="/projects/add">
+    <input name="name" placeholder="Nuevo proyecto…" required>
+    <input name="area" placeholder="Área (estudio, trabajo, sistema…)" style="flex:0 1 200px">
+    <select name="entity"><option value="personal">Personal</option><option value="business">Negocio</option></select>
+    <input name="milestone" placeholder="Próximo hito"><input name="tags" placeholder="#etiquetas" style="flex:0 1 140px"><input type="date" name="due"><button>Crear</button></form>
+</div>
+<div class="grid g2">
+{% for p in ps %}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:start;gap:10px">
+      <div><div style="font-size:17px;font-weight:650">{{ p.name }}</div>
+        <div class="meta" style="color:var(--muted);font-size:12.5px">{{ p.area or 'sin área' }}{% if p.entity == 'business' %} · negocio{% endif %}{% if p.goal %} · 🎯 {{ p.goal }}{% endif %}{% if p.tags %} · {% for tg in p.tags.split(',') %}<a href="/tasks?tag={{ tg }}">#{{ tg }}</a> {% endfor %}{% endif %}</div></div>
+      <span class="chip {{ 'bad' if p.status == 'blocked' else 'warn' if p.status == 'paused' else 'ok' }}">{{ {'active':'activo','blocked':'bloqueado','paused':'pausado'}[p.status] }}</span>
+    </div>
+    {% set total = p.open_tasks + p.done_tasks %}
+    <div class="bar" style="margin:12px 0 6px"><i style="width:{{ (100 * p.done_tasks / total) | round if total else 0 }}%"></i></div>
+    <div class="meta" style="color:var(--muted);font-size:12.5px;margin-bottom:8px">{{ p.done_tasks }} hechas · {{ p.open_tasks }} abiertas{% if p.next_milestone %} · hito: {{ p.next_milestone }}{% endif %}{% if p.due_date %} · {{ p.due_date }}{% endif %}</div>
+    {% for t in p.next %}<div class="row"><div class="grow"><a href="/tasks/{{ t.id }}" style="color:inherit">{{ t.title }}</a></div>{% if t.due_date %}<span class="chip muted">{{ t.due_date }}</span>{% endif %}</div>{% endfor %}
+    {% for h in p.habits %}<div class="row"><form class="inline" method="post" action="/habits/{{ h.id }}/toggle"><button class="check {{ 'on' if h.done_today }}" title="Hábito de hoy">✓</button></form>
+      <div class="grow">💪 {{ h.name }}</div><span class="chip {{ 'ok' if h.streak >= 3 else 'muted' }}">racha {{ h.streak }}</span></div>{% endfor %}
+    {% if p.focus_min %}<div class="meta" style="margin-top:6px">⏱ {{ p.focus_min // 60 }} h {{ p.focus_min % 60 }} min de enfoque acumulado</div>{% endif %}
+    <div class="form" style="margin-top:8px"><a class="btn ghost small" href="/tasks?view=todas&project={{ p.name | urlencode }}">Ver todas las tareas</a></div>
+    <form class="form" method="post" action="/projects/{{ p.id }}/status" style="margin-top:10px">
+      <select name="status" data-autosubmit><option value="active">Activo</option><option value="blocked">Bloqueado</option><option value="paused">Pausado</option><option value="done">Terminado</option></select></form>
+  </div>
+{% else %}<div class="card"><div class="empty">Sin proyectos todavía.</div></div>{% endfor %}
+</div>
+{% endblock %}

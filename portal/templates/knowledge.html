@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Conocimiento · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Conocimiento</h1>
+<p class="sub">Notas en Markdown con historial en Git. Formato abierto: se pueden abrir con Obsidian o cualquier editor.</p>
+<div class="grid g2">
+  <div class="grid">
+    <div class="card"><h2>Buscar</h2>
+      <form class="form" method="get" action="/knowledge"><input name="q" value="{{ q }}" placeholder="Buscar en todas las notas…"><button>Buscar</button></form>
+      {% for f in found %}<div class="row"><div class="grow"><a href="/knowledge/view?path={{ f.path | urlencode }}">{{ f.title }}</a><div class="meta">{{ f.snippet }}</div></div></div>
+      {% else %}{% if q %}<div class="empty">Sin resultados.</div>{% endif %}{% endfor %}</div>
+    <div class="card"><h2>Recientes</h2>
+      {% for n in recent %}<div class="row"><a class="grow" href="/knowledge/view?path={{ n.path | urlencode }}">{{ n.title }}</a><span class="chip muted">{{ n.path.split('/')[0] if '/' in n.path else n.path.split('\\')[0] }}</span></div>
+      {% else %}<div class="empty">Aún no hay notas.</div>{% endfor %}</div>
+  </div>
+  <div class="card"><h2>Nueva nota</h2>
+    <form method="post" action="/knowledge/new" class="grid">
+      <input name="title" placeholder="Título" required>
+      <div class="form"><select name="area">{% for a in areas %}<option>{{ a }}</option>{% endfor %}</select><input name="tags" placeholder="etiquetas, separadas por coma" style="flex:1"></div>
+      <textarea name="body" rows="10" placeholder="Escribe en Markdown. Tarjetas: pregunta :: respuesta"></textarea>
+      <div><button>Guardar nota</button></div></form></div>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Dispositivos · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Dispositivos</h1>
+<p class="sub">Tu celular, tu tableta u otro Windows entran al portal <b>sin contraseña</b>: se emparejan una sola vez con un enlace o QR y quedan abiertos por un año. Los puedes desconectar uno por uno.</p>
+
+{% if link %}<div class="card" style="margin-bottom:16px;text-align:center">
+  <h2>{{ 'Panel fuera del PC: escanea con el equipo' if panel_link else 'Escanea con el dispositivo nuevo' }}</h2>
+  <div style="display:inline-block;background:#fff;border-radius:12px;padding:8px;margin:8px 0">{{ qr | safe }}</div>
+  <p class="meta" style="margin:6px 0">O abre este enlace en ese dispositivo (con Tailscale conectado):</p>
+  <p style="word-break:break-all"><code>{{ link }}</code></p>
+  {% if panel_link %}<p class="meta">Quien lo abra queda con <b>acceso de lectura a todo tu panel</b> (el enlace lleva la llave de cifrado). No lo compartas ni lo pegues en chats. Si se filtra: <code>pos panel key --force</code>.</p>
+  {% else %}<p class="meta">Vale {{ minutes }} minutos y se usa <b>una sola vez</b>. No lo compartas.</p>{% endif %}
+  {% if not has_host %}<div class="note">Falta el acceso por Tailscale: este enlace solo funciona en este PC.</div>{% endif %}
+</div>{% endif %}
+
+<div class="card" style="margin-bottom:16px"><h2>Añadir un dispositivo</h2>
+  <ol style="margin:0 0 10px 18px;padding:0">
+    <li>En el dispositivo nuevo instala <b>Tailscale</b> (Play Store en Android, Microsoft Store o tailscale.com en Windows) e inicia sesión con <b>la misma cuenta</b> que usaste en este PC. Debe decir «Connected».</li>
+    <li>Pulsa el botón de abajo y escanea el QR (o abre el enlace) <b>en ese dispositivo</b>. También puedes pedir el enlace desde Telegram con <code>/dispositivo</code>.</li>
+    <li>En Chrome o Edge: menú ⋮ → <b>Instalar app</b>. Queda con su ícono y se actualiza sola cada vez que tu PC esté encendido.</li>
+  </ol>
+  <form method="post" action="/devices/new"><button>Generar enlace y QR</button></form></div>
+
+<div class="card" style="margin-bottom:16px"><h2>Panel fuera del PC (copia cifrada de solo lectura)</h2>
+  <p class="meta" style="margin:0 0 8px">Tu PC sube una copia cifrada del panel cada vez que se enciende (o cada 3 horas). La ves desde cualquier equipo emparejado, aunque el PC esté apagado: muestra lo último que subió. Cada enlace que generes te avisa por Telegram.</p>
+  <form method="post" action="/devices/panel-link"><button class="ghost">Generar enlace del panel</button></form></div>
+
+<div class="card"><h2>Dispositivos emparejados</h2>
+  {% for d in devices %}<div class="row"><div class="grow">{{ d.label }}<div class="meta">emparejado {{ d.paired_at[:16] }}{% if d.last_seen %} · último uso {{ d.last_seen[:16] }}{% endif %}</div></div>
+    {% if d.revoked %}<span class="chip muted">desconectado</span>{% else %}<span class="chip ok">activo</span>
+    <form class="inline" method="post" action="/devices/{{ d.id }}/revoke"><button class="ghost small">Desconectar</button></form>{% endif %}</div>
+  {% else %}<div class="empty">Aún no has emparejado ningún dispositivo.</div>{% endfor %}
+  <p class="meta" style="margin:10px 0 0">Si pierdes un teléfono, desconéctalo aquí y elimínalo también en tu cuenta de Tailscale. Lo que tiene guardado la app (Hoy, Tareas, Calendario…) se borra al desconectar.</p></div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Automatizaciones · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Automatizaciones</h1>
+<p class="sub">Trabajo que ocurre solo, sin gastar tokens de Claude. Catálogo completo en JOBS.md.</p>
+<div class="card"><table><tr><th>Job</th><th>Estado</th><th>Última ejecución</th><th>Resultado</th><th></th></tr>
+{% for j in items %}<tr><td><b>{{ j.name }}</b> {% if not j.scheduled %}<span class="chip muted">{{ 'manual (doble clic)' if j.manual else 'bajo demanda' }}</span>{% endif %}</td>
+  <td><span class="chip {{ 'ok' if j.status == 'ok' else 'bad' if j.status == 'failed' else 'muted' }}">{{ {'ok':'ok','failed':'falló','never':'sin ejecutar','running':'en curso'}[j.status] }}</span></td>
+  <td>{{ j.last or '—' }}</td><td class="meta" style="color:var(--muted)">{{ j.message }}</td>
+  <td>{% if not j.manual %}<form class="inline" method="post" action="/jobs/{{ j.name }}/run"><button class="ghost small">Ejecutar</button></form>{% endif %}</td></tr>{% endfor %}</table></div>
+{% endblock %}

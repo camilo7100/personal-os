@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Primeros pasos · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Primeros pasos</h1>
+<p class="sub">Lo único que necesita tu intervención: contraseñas, inicios de sesión y permisos. Cada paso se marca solo cuando el sistema comprueba que quedó hecho.</p>
+<div class="card" style="margin-bottom:16px">
+  <div style="display:flex;justify-content:space-between;gap:10px"><b>{{ req_done }} de {{ req_total }} pasos obligatorios</b>
+    <span class="chip {{ 'ok' if req_done == req_total else 'warn' }}">{{ 'todo listo' if req_done == req_total else 'faltan ' ~ (req_total - req_done) }}</span></div>
+  <div class="bar" style="margin-top:10px"><i style="width:{{ (100 * req_done / req_total) | round if req_total else 0 }}%"></i></div>
+</div>
+{% for s in steps %}
+<div class="card" style="margin-bottom:12px">
+  <div style="display:flex;gap:12px;align-items:flex-start">
+    <span class="check {{ 'on' if s.done }}" style="flex:0 0 auto;margin-top:2px">{{ '✓' if s.done else '' }}</span>
+    <div class="grow" style="min-width:0">
+      <div style="font-weight:650;font-size:16px">{{ s.title }} {% if s.optional %}<span class="chip muted">opcional</span>{% endif %}
+        {% if s.done %}<span class="chip ok">hecho</span>{% endif %}</div>
+      <div class="meta" style="color:var(--muted);margin:4px 0 10px">{{ s.how }}</div>
+      {% if s.done and s.key == 'backupkey' %}<span class="meta" style="color:var(--muted)">¿Aún no la pegaste en Bitwarden? Vuelve a copiarla:</span> {% endif %}
+      {% for b in s.pre or [] %}<form method="post" action="{{ b.url }}" class="inline"><button class="ghost">{{ b.button }}</button></form> {% endfor %}
+      {% if not s.done and s.action != 'none' %}
+        {% if s.action == 'link' %}<a class="btn" href="{{ s.url }}">{{ s.button }}</a>
+        {% else %}<form method="post" action="{{ s.url }}" class="inline"><button>{{ s.button }}</button></form>{% endif %}
+      {% endif %}
+      {% if s.done and s.key in ('mail', 'telegram') %}<span class="meta" style="color:var(--muted)">Conectado.</span>{% endif %}
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

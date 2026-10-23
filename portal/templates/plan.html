@@ -1,0 +1,40 @@
+{% extends "base.html" %}{% import "macros.html" as m %}
+{% block title %}{{ p.title }} · PERSONAL_OS{% endblock %}
+{% block content %}
+<p class="sub" style="margin-bottom:6px"><a href="/plans">← Planes</a></p>
+<h1>{{ p.title }}</h1>
+<p class="sub">{{ p.kind }} · {{ p.hours_per_week | round(1) }} h/semana · {{ p.start_date }} → {{ p.end_date }}{% if p.tags %} · {% for t in p.tags.split(',') %}<span class="chip">#{{ t }}</span> {% endfor %}{% endif %}
+  {% if p.source_url %} · <a href="{{ p.source_url }}" target="_blank" rel="noopener noreferrer">ver curso ↗</a>{% endif %}</p>
+
+<div class="grid g4" style="margin-bottom:16px">
+  {{ m.stat(p.percent ~ '%', 'Avance', 'ok' if p.percent == 100 else '') }}
+  {{ m.stat(p.done ~ '/' ~ p['items'], 'Ítems hechos') }}
+  {{ m.stat((p.minutes / 60) | round(1) ~ ' h', 'Duración total') }}
+  {{ m.stat(p.late, 'Atrasados', 'bad' if p.late else 'ok') }}
+</div>
+
+<div class="card" style="margin-bottom:16px"><h2>Cronograma por etapas</h2>{{ m.gantt(gantt) }}
+  <div class="form" style="margin-top:14px">
+    <form method="post" action="/plans/{{ p.id }}/reschedule"><button class="ghost">↻ Reprogramar desde hoy</button></form>
+    <a class="btn ghost" href="/plans/{{ p.id }}/calendar.ics">📅 Exportar al calendario (.ics)</a>
+    <a class="btn ghost" href="/ask?scope=plan:{{ p.id }}">💬 Preguntar sobre este plan</a>
+    <form method="post" action="/plans/{{ p.id }}/status" class="form">
+      <select name="status" data-autosubmit><option value="active" {{ 'selected' if p.status == 'active' }}>Activo</option><option value="paused" {{ 'selected' if p.status == 'paused' }}>Pausado</option><option value="done" {{ 'selected' if p.status == 'done' }}>Terminado</option></select></form>
+  </div></div>
+
+{% for s in stages %}
+<div class="card" style="margin-bottom:12px">
+  <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><h2 style="margin:0">{{ s.position }}. {{ s.title }}</h2>
+    <span class="meta" style="color:var(--muted);font-size:12.5px">{{ s.start_date or '—' }} → {{ s.end_date or '—' }} · {{ (s.minutes / 60) | round(1) }} h · {{ s.done }}/{{ s['items'] | length }}</span></div>
+  <div class="bar" style="margin:10px 0 6px"><i style="width:{{ s.percent }}%"></i></div>
+  {% for i in s['items'] %}
+  <div class="row">
+    <form class="inline" method="post" action="/plans/items/{{ i.id }}/toggle"><input type="hidden" name="back" value="/plans/{{ p.id }}"><button class="check {{ 'on' if i.status == 'done' }}" title="Marcar">✓</button></form>
+    <div class="grow" style="{{ 'text-decoration:line-through;opacity:.6' if i.status == 'done' }}">{% if i.url %}<a href="{{ i.url }}" target="_blank" rel="noopener noreferrer">{{ i.title }}</a>{% else %}{{ i.title }}{% endif %}</div>
+    <span class="chip muted">{{ i.kind }}</span><span class="meta" style="color:var(--muted);font-size:12.5px">{{ i.est_minutes }} min</span>
+    {% if i.scheduled_date %}<span class="chip {{ 'bad' if i.status == 'todo' and i.scheduled_date < today else 'muted' }}">{{ i.scheduled_date }}</span>{% endif %}
+  </div>{% endfor %}
+</div>
+{% endfor %}
+{% if qs %}<div class="card"><h2>Preguntas sobre este plan</h2>{% for q in qs %}<div class="row"><div class="grow">{{ q.question }}</div><span class="chip {{ 'ok' if q.status == 'answered' else 'warn' }}">{{ 'respondida' if q.status == 'answered' else 'pendiente' }}</span></div>{% endfor %}<p><a href="/ask">Ver respuestas</a></p></div>{% endif %}
+{% endblock %}

@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · PERSONAL_OS{% endblock %}
+{% block content %}
+<p class="sub"><a href="/knowledge">← Conocimiento</a> · <code>{{ path }}</code></p>
+<div class="card md">{{ html | safe }}</div>
+{% endblock %}

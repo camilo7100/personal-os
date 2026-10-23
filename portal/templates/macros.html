@@ -1,0 +1,73 @@
+{% macro task_row(t, today, back='/tasks') %}
+<div class="row">
+  <form class="inline" method="post" action="/tasks/{{ t.id }}/done"><input type="hidden" name="back" value="{{ back }}"><button class="check" title="Hecha">✓</button></form>
+  <div class="grow">
+    <div><a href="/tasks/{{ t.id }}" style="color:inherit">{{ t.title }}</a></div>
+    <div class="meta">
+      {% if t.project %}{{ t.project }} · {% endif %}
+      {% if t.start_time %}<span class="chip">🕘 {{ t.start_time }}{% if t.est_minutes %} · {{ t.est_minutes }} min{% endif %}</span>
+      {% elif t.est_minutes %}<span class="chip muted">⏱ {{ t.est_minutes }} min</span>{% endif %}
+      {% if t.due_date %}<span class="chip {{ 'bad' if t.due_date < today else 'warn' if t.due_date == today else 'muted' }}">{{ t.due_date }}</span>{% endif %}
+      {% if t.recurrence %}<span class="chip muted">↻ {{ t.recurrence }}</span>{% endif %}
+      {% if t.sub_total %}<span class="chip muted">☑ {{ t.sub_done }}/{{ t.sub_total }}</span>{% endif %}
+      {% if t.entity == 'business' %}<span class="chip">negocio</span>{% endif %}
+      {% if t.tags %}{% for tg in t.tags.split(',') %}<a class="chip muted" href="/tasks?view=todas&tag={{ tg }}">#{{ tg }}</a> {% endfor %}{% endif %}
+    </div>
+  </div>
+  {% if t.p == 1 or t.priority == 1 %}<span class="chip bad">urgente</span>{% elif t.priority == 2 %}<span class="chip warn">alta</span>{% endif %}
+  <form class="inline" method="post" action="/tasks/{{ t.id }}/move"><input type="hidden" name="back" value="{{ back }}"><label class="datebtn" title="Reprogramar">&#128197;<input type="date" name="to" data-autosubmit></label></form>
+  <form class="inline" method="post" action="/tasks/{{ t.id }}/drop"><input type="hidden" name="back" value="{{ back }}"><button class="ghost small" title="Descartar">✕</button></form>
+</div>
+{% endmacro %}
+
+{% macro quick_add(back='/tasks', autofocus=false) %}
+<form class="qa" method="post" action="/tasks/quick">
+  <input type="hidden" name="back" value="{{ back }}">
+  <input name="text" placeholder="Añade una tarea como la dirías: «llamar al contador mañana 3pm ~30m p1 #Maestría»" autocomplete="off" data-quick="#qa-hint" required {{ 'autofocus' if autofocus }}>
+  <div class="hint" id="qa-hint"></div>
+  <details class="ex"><summary style="cursor:pointer">¿Qué puedo escribir?</summary>Fecha: <code>mañana</code> · <code>viernes</code> · <code>el 15</code> · <code>en 3 días</code> &nbsp; Hora: <code>3pm</code> · <code>a las 15:30</code> &nbsp; Duración: <code>~30m</code> · <code>por 1h</code> &nbsp; Prioridad: <code>p1</code>–<code>p4</code> &nbsp; Proyecto: <code>#Nombre</code> &nbsp; Etiqueta: <code>@pago</code> &nbsp; Repetir: <code>cada lunes</code> · <code>cada mes</code> · <code>algún día</code></details>
+</form>
+{% endmacro %}
+
+{% macro task_form(projects, back='/tasks') %}
+<form class="form" method="post" action="/tasks/add">
+  <input type="hidden" name="back" value="{{ back }}">
+  <input name="title" placeholder="Nueva tarea…" required autocomplete="off">
+  <select name="project"><option value="">Sin proyecto</option>{% for p in projects %}<option>{{ p.name }}</option>{% endfor %}</select>
+  <input type="date" name="due" title="Fecha límite">
+  <select name="prio"><option value="1">Urgente</option><option value="2">Alta</option><option value="3" selected>Normal</option><option value="4">Baja</option></select>
+  <select name="entity"><option value="personal">Personal</option><option value="business">Negocio</option></select>
+  <input name="tags" placeholder="#etiquetas" style="flex:0 1 150px">
+  <select name="repeat"><option value="">No se repite</option><option value="daily">Diaria</option><option value="weekly">Semanal</option><option value="monthly">Mensual</option><option value="quarterly">Trimestral</option><option value="yearly">Anual</option></select>
+  <button>Añadir</button>
+</form>
+{% endmacro %}
+
+{% macro meter(l) %}
+<div class="load-line">
+  <div style="flex:1;min-width:140px"><div class="meter {{ '' if l.state == 'ok' else l.state }}"><i style="width:{{ [l.pct, 100] | min }}%"></i></div></div>
+  <b>{{ l.minutes // 60 }} h {{ l.minutes % 60 }} min</b><span class="meta">de {{ l.capacity // 60 }} h · {{ l.count }} {{ 'tarea' if l.count == 1 else 'tareas' }} (máx. {{ l.max_items }})</span>
+</div>
+{% endmacro %}
+
+{% macro stat(n, label, kind='') %}<div class="card stat {{ kind }}"><div class="n">{{ n }}</div><div class="l">{{ label }}</div></div>{% endmacro %}
+
+{% macro cat_chip(c) %}<span class="chip {{ 'bad' if c in ('security','finance') else 'ok' if c in ('human','career','study') else 'muted' }}">{{ c }}</span>{% endmacro %}
+
+{% macro gantt(g) %}
+<div class="gantt-wrap"><div class="gantt">
+  <div class="g-row g-head"><div class="g-label"></div><div class="g-track">{% for w in g.weeks %}{% if w.show %}<span style="left:{{ w.left }}%">{{ w.label }}</span>{% endif %}{% endfor %}</div></div>
+  {% for r in g.rows %}
+  <div class="g-row"><div class="g-label" title="{{ r.label }}">{{ r.label }}</div>
+    <div class="g-track">
+      {% for w in g.weeks %}<i class="g-week" style="left:{{ w.left }}%"></i>{% endfor %}
+      {% if g.today is not none %}<i class="g-today" style="left:{{ g.today }}%"></i>{% endif %}
+      {% if r.href %}<a href="{{ r.href }}" class="g-bar {{ r.cls }}" style="left:{{ r.left }}%;width:{{ r.width }}%" title="{{ r.percent }}%"><b style="width:{{ r.percent }}%"></b><span>{{ r.percent }}%</span></a>
+      {% else %}<div class="g-bar {{ r.cls }}" style="left:{{ r.left }}%;width:{{ r.width }}%"><b style="width:{{ r.percent }}%"></b><span>{{ r.percent }}%</span></div>{% endif %}
+    </div></div>
+  {% endfor %}
+  <div class="g-legend"><i class="g-today" style="position:static;display:inline-block;height:10px"></i> hoy</div>
+</div></div>
+{% endmacro %}
+
+{% macro ev(it) %}{% if it.link %}<a class="ev {{ it.cls }} {{ 'done' if it.done }}" href="{{ it.link }}" title="{{ it.title }}">{% if it.time %}{{ it.time }} {% endif %}{{ it.title }}</a>{% else %}<span class="ev {{ it.cls }}" title="{{ it.title }}">{% if it.time %}{{ it.time }} {% endif %}{{ it.title }}</span>{% endif %}{% endmacro %}

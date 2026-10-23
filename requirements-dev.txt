@@ -1,0 +1,5 @@
+-r requirements.txt
+pytest==9.1.1
+httpx==0.28.1
+# Solo para scripts/demo_capturas.py (usa el Edge ya instalado; no descarga navegadores)
+playwright==1.64.1

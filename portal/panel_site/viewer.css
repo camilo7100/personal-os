@@ -1,0 +1,8 @@
+html, body { margin: 0; height: 100%; background: #0f172a; color: #e2e8f0; font: 15px system-ui, sans-serif; }
+#bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 12px; background: #1e293b; font-size: 13px; }
+#bar.old { background: #78350f; color: #fef3c7; }
+#bar button { background: transparent; border: 1px solid #475569; color: inherit; border-radius: 8px; padding: 3px 9px; font-size: 12px; cursor: pointer; }
+#page { width: 100%; height: calc(100% - 33px); border: 0; background: #fff; display: block; }
+.center { max-width: 460px; margin: 18vh auto 0; padding: 0 20px; text-align: center; line-height: 1.5; }
+.center h1 { font-size: 22px; margin: 0 0 10px; }
+.center p { color: #94a3b8; margin: 6px 0; }

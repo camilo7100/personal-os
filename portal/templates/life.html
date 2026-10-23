@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Vida y documentos · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Vida y documentos</h1>
+<p class="sub">Hábitos, vencimientos, suscripciones y las personas importantes. Lo que vence te llega solo en el briefing.</p>
+<div class="grid g2">
+  <div class="grid">
+    <div class="card"><h2>Hábitos</h2>
+      {% for h in habits %}<div class="row"><form class="inline" method="post" action="/habits/{{ h.id }}/toggle"><button class="check {{ 'on' if h.done_today }}">✓</button></form><div class="grow">{{ h.name }}</div><span class="chip {{ 'ok' if h.streak >= 3 else 'muted' }}">racha {{ h.streak }}</span></div>{% endfor %}
+      <form class="form" method="post" action="/life/habit" style="margin-top:10px"><input name="name" placeholder="Nuevo hábito (p. ej. Caminar 30 min)" required><button class="ghost">Añadir</button></form></div>
+    <div class="card"><h2>Documentos y vencimientos</h2>
+      {% for d in docs %}<div class="row"><div class="grow">{{ d.name }}<div class="meta">{{ d.kind or '' }}{% if d.entity == 'business' %} · negocio{% endif %}</div></div>
+        {% if d.expires_on %}<span class="chip {{ 'bad' if d.expires_on < today else 'warn' if d.expires_on < today[:8] + '99' else 'muted' }}">{{ d.expires_on }}</span>{% endif %}</div>
+      {% else %}<div class="empty">Registra documento, pasaporte, seguros, SOAT, garantías…</div>{% endfor %}
+      <form class="form" method="post" action="/life/doc" style="margin-top:10px"><input name="name" placeholder="Documento" required><input name="kind" placeholder="Tipo" style="flex:0 1 120px"><input type="date" name="expires" title="Vence"><select name="entity"><option value="personal">Personal</option><option value="business">Negocio</option></select><button class="ghost">Añadir</button></form></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>Suscripciones · {{ '{:,.0f}'.format(cost) }}/mes</h2>
+      {% for s in subs %}<div class="row"><div class="grow">{{ s.name }}<div class="meta">{{ {'monthly':'mensual','yearly':'anual','weekly':'semanal'}[s.cycle] }}{% if s.entity == 'business' %} · negocio{% endif %}</div></div>
+        <b>{{ '{:,.0f}'.format(s.amount) }}</b>{% if s.next_date %}<span class="chip muted">{{ s.next_date }}</span>{% endif %}</div>
+      {% else %}<div class="empty">Sin suscripciones registradas.</div>{% endfor %}
+      <form class="form" method="post" action="/life/sub" style="margin-top:10px"><input name="name" placeholder="Servicio" required><input type="number" step="any" name="amount" placeholder="Monto" required style="width:110px">
+        <select name="cycle"><option value="monthly">Mensual</option><option value="yearly">Anual</option><option value="weekly">Semanal</option></select><input type="date" name="next_date" title="Próximo cobro"><select name="entity"><option value="personal">Personal</option><option value="business">Negocio</option></select><button class="ghost">Añadir</button></form></div>
+    <div class="card"><h2>Familia y pareja</h2>
+      <p class="meta" style="margin:0 0 8px">Todo evento ligado a ellos te avisa 30 y 15 días antes y el mismo día (Telegram, Windows y Google Calendar).</p>
+      {% for e in up.family %}<div class="row"><div class="grow">{{ e.title }}<div class="meta">{{ e.date }}{% if e.relation %} · {{ e.relation }}{% endif %}</div></div>
+        <span class="chip {{ 'warn' if e.left <= 30 else 'muted' }}">{{ 'hoy' if e.left == 0 else 'en ' ~ e.left ~ ' d' }}</span></div>
+      {% else %}<div class="empty">Sin fechas cercanas.</div>{% endfor %}</div>
+    <div class="card"><h2>Otras personas</h2>
+      {% for p in people %}<div class="row"><div class="grow">{{ p.name }}<div class="meta">{{ p.relation or '' }}{% if p.birthday %} · 🎂 {{ p.birthday }}{% endif %}{% if p.last_contact %} · último contacto {{ p.last_contact }}{% endif %}</div></div>
+        <form class="inline" method="post" action="/life/person/{{ p.id }}/contacted"><button class="ghost small">Hablé hoy</button></form></div>
+      {% else %}<div class="empty">Cumpleaños, favores pendientes, gente clave.</div>{% endfor %}
+      <form class="form" method="post" action="/life/person" style="margin-top:10px"><input name="name" placeholder="Nombre" required><input name="relation" placeholder="Relación" style="flex:0 1 130px"><input name="birthday" placeholder="MM-DD" style="width:90px"><select name="circle"><option value="otros">Otros</option><option value="familia">Familia</option><option value="pareja">Pareja</option></select><button class="ghost">Añadir</button></form></div>
+  </div>
+</div>
+{% endblock %}

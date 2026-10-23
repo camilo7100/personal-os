@@ -1,0 +1,73 @@
+{% extends "base.html" %}{% import "macros.html" as m %}
+{% block title %}Calendario · PERSONAL_OS{% endblock %}
+{% block content %}
+<h1>Calendario</h1>
+<p class="sub">Todo junto en un solo lugar: tus bloques de tiempo, tareas, planes de estudio, Google Calendar, familia y pareja, festivos y vencimientos.</p>
+<div class="tabs">
+  {% for key, label in views %}<a class="{{ 'on' if key == view }}" href="/calendar?view={{ key }}&d={{ cur }}{{ kq }}">{{ label }}</a>{% endfor %}
+</div>
+<div class="toolbar">
+  {% if view != 'timeline' %}<a class="btn ghost" href="/calendar?view={{ view }}&d={{ cnav.prev }}{{ kq }}">‹</a>
+  <a class="btn ghost" href="/calendar?view={{ view }}&d={{ today }}{{ kq }}">Hoy</a>
+  <a class="btn ghost" href="/calendar?view={{ view }}&d={{ cnav.next }}{{ kq }}">›</a>{% endif %}
+  <h2>{{ cnav.title }}</h2><span class="grow"></span>
+  {% if view in ('week', 'day') %}<a class="btn" href="/plan/day?d={{ cur if view == 'day' else today }}">✨ Proponer mi día</a>{% endif %}
+  {% if view == 'timeline' %}{% for n, l in (('3', '3 meses'), ('6', '6 meses'), ('12', '1 año')) %}<a class="btn {{ '' if months|string == n else 'ghost' }}" href="/calendar?view=timeline&months={{ n }}">{{ l }}</a>{% endfor %}{% endif %}
+</div>
+
+{% if view == 'month' %}
+<div class="mgrid">
+  {% for n in month.dow %}<div class="mhead">{{ n }}</div>{% endfor %}
+  {% for w in month.weeks %}{% for c in w %}
+  <div class="mday {{ 'out' if not c.in_month }} {{ 'today' if c.is_today }} {{ 'weekend' if c.weekend }}">
+    <div class="num"><a href="/calendar?view=day&d={{ c.date }}{{ kq }}">{{ c.num }}</a>{% if c.state %}<span class="dot {{ c.state }}" title="Carga del día"></span>{% endif %}</div>
+    {% for it in c['items'] %}{{ m.ev(it) }}{% endfor %}
+    {% if c.more %}<div class="more"><a href="/calendar?view=day&d={{ c.date }}{{ kq }}">+{{ c.more }} más</a></div>{% endif %}
+  </div>
+  {% endfor %}{% endfor %}
+</div>
+<p class="meta" style="margin-top:8px">El punto de color marca la carga del día frente a tu capacidad (verde: cómodo · ámbar: casi lleno · rojo: demasiado).</p>
+
+{% elif view in ('week', 'day') %}
+<div class="cal-layout">
+  <div class="wkscroll"><div class="wk" style="--n:{{ w.cols|length }}">
+    <div class="whead"></div>
+    {% for c in w.cols %}<div class="whead {{ 'today' if c.is_today }}"><a href="/calendar?view=day&d={{ c.date }}{{ kq }}">{{ c.label }}</a>
+      <small>{{ c.load.count }} · {{ c.load.minutes // 60 }}h{{ '%02d' | format(c.load.minutes % 60) }} de {{ c.load.capacity // 60 }}h</small>
+      <div class="meter {{ '' if c.load.state == 'ok' else c.load.state }}" style="margin-top:4px"><i style="width:{{ [c.load.pct, 100] | min }}%"></i></div></div>{% endfor %}
+    <div class="allday" style="border-left:0"></div>
+    {% for c in w.cols %}<div class="allday">{% for it in c.allday %}{{ m.ev(it) }}{% endfor %}{% if c.allday_more %}<a class="more" href="/calendar?view=day&d={{ c.date }}{{ kq }}">+{{ c.allday_more }} más</a>{% endif %}</div>{% endfor %}
+    <div class="axis">{% for h in w.hours %}<span style="top:{{ h.top }}%">{{ '%02d' | format(h.h) }}:00</span>{% endfor %}</div>
+    {% for c in w.cols %}
+    <div class="wcol {{ 'today' if c.is_today }}" data-day="{{ c.date }}" data-from="{{ w.from_min }}" data-range="{{ w.range_min }}">
+      {% for l in c.busy %}<div class="lunch" style="top:{{ l[0] }}%;height:{{ l[1] }}%" title="Almuerzo"></div>{% endfor %}
+      {% if w.now and c.is_today %}<div class="nowline" style="top:{{ w.now }}%"></div>{% endif %}
+      {% for b in c.blocks %}<a class="blk {{ b.cls }} {{ 'done' if b.done }}" href="{{ b.link or '#' }}" {% if b.kind == 'bloque' and b.id %}draggable="true" data-task="{{ b.id }}"{% endif %}
+        style="top:{{ b.top }}%;height:{{ b.height }}%;left:{{ b.left }}%;width:{{ b.width }}%" title="{{ b.title }}"><b>{{ b.time }}{% if b.end_time %}–{{ b.end_time }}{% endif %}</b>{{ b.title }}</a>{% endfor %}
+    </div>{% endfor %}
+  </div></div>
+  <div class="card side-list"><h2>Sin hora asignada</h2>
+    <p class="meta" style="margin:0 0 6px">Arrastra una tarea a un día y hora de la cuadrícula para darle un bloque de tiempo.</p>
+    {% for t in backlog %}<a class="task-chip" draggable="true" data-task="{{ t.id }}" href="/tasks/{{ t.id }}">{{ t.title }}<small>{% if t.due_date %}vence {{ t.due_date }}{% else %}sin fecha{% endif %}{% if t.est_minutes %} · {{ t.est_minutes }} min{% endif %}</small></a>
+    {% else %}<div class="empty">Todo tiene hora 🎉</div>{% endfor %}
+  </div>
+</div>
+
+{% elif view == 'agenda' %}
+<div class="card">
+  {% for d in agenda.days %}<div class="agenda-day"><div class="d">{{ d.label }}<small>{{ d.rel }}</small>{% if d.load %}<div class="meter {{ '' if d.load.state == 'ok' else d.load.state }}" style="margin-top:6px"><i style="width:{{ [d.load.pct, 100] | min }}%"></i></div>{% endif %}</div>
+    <div>{% for it in d['items'] %}<div class="agenda-item"><span class="t">{{ it.time or '' }}</span>{{ m.ev(it) }}<span class="tag">{{ kinds[it.kind][0] }}</span></div>{% endfor %}</div></div>
+  {% else %}<div class="empty">Nada agendado en este rango. ✨</div>{% endfor %}
+</div>
+
+{% elif view == 'timeline' %}
+<div class="card"><h2>Proyectos, planes y objetivos</h2>
+  {% if timeline.gantt.rows %}{{ m.gantt(timeline.gantt) }}{% else %}<div class="empty">Aún no hay proyectos o planes con fechas. Crea uno en <a href="/projects">Proyectos</a> o <a href="/plans">Planes</a>.</div>{% endif %}
+  <p class="meta" style="margin-top:8px">Cada barra va del primer al último día con tareas (o hasta la fecha del proyecto); lo oscuro es el avance. En rojo, proyectos bloqueados.</p></div>
+<div class="card" style="margin-top:16px"><h2>Fechas clave</h2>
+  <div class="keydates">{% for k in timeline.key %}<span class="ev {{ k.cls }}">{{ k.date[5:] }} · {{ k.title }}</span>{% else %}<span class="empty">Sin fechas clave próximas.</span>{% endfor %}</div></div>
+{% endif %}
+
+<div class="legend">{% for key, (label, cls) in kinds.items() %}<a href="/calendar?view={{ view }}&d={{ cur }}&kinds={{ toggles[key] }}" class="{{ cls }}" style="color:{{ 'var(--ink)' if key in on else 'var(--muted)' }};{{ '' if key in on else 'text-decoration:line-through' }}"><i></i>{{ label }}</a>{% endfor %}
+  <a href="/calendar?view={{ view }}&d={{ cur }}">mostrar todo</a></div>
+{% endblock %}

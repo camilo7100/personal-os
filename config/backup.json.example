@@ -1,0 +1,7 @@
+{
+  "essential": {
+    "repo": "C:\\Users\\<usuario>\\PERSONAL_OS_BACKUP\\essential",
+    "sources": ["<repo>\\data", "<repo>\\config"],
+    "exclude_larger_than": "25M", "max_gb": 1.0, "keep_local_snapshots": 2
+  }
+}
